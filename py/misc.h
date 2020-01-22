@@ -53,6 +53,15 @@ typedef unsigned int uint;
 // Static assertion macro
 #define MP_STATIC_ASSERT(cond) ((void)sizeof(char[1 - 2 * !(cond)]))
 
+// msvc is less permissive about what's allowed in sizeof(), and certain expressions other compilers
+// might accept cause a compilation error. use this you have a static assert that should not be
+// evaluated when compiling with it.
+#ifdef _MSC_VER
+#define MP_STATIC_ASSERT_NOT_ON_MSVC(cond) ((void)1)
+#else
+#define MP_STATIC_ASSERT_NOT_ON_MSVC(cond) MP_STATIC_ASSERT(cond)
+#endif
+
 /** memory allocation ******************************************/
 
 // TODO make a lazy m_renew that can increase by a smaller amount than requested (but by at least 1 more element)

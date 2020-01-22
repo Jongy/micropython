@@ -664,14 +664,29 @@ extern const struct _mp_obj_exception_t mp_const_GeneratorExit_obj;
 // check for more specific object types.
 // Note: these are kept as macros because inline functions sometimes use much
 // more code space than the equivalent macros, depending on the compiler.
-#define mp_obj_is_type(o, t) (mp_obj_is_obj(o) && (((mp_obj_base_t*)MP_OBJ_TO_PTR(o))->type == (t))) // this does not work for checking int, str or fun; use below macros for that
-#define mp_obj_is_int(o) (mp_obj_is_small_int(o) || mp_obj_is_type(o, &mp_type_int))
-#define mp_obj_is_str(o) (mp_obj_is_qstr(o) || mp_obj_is_type(o, &mp_type_str))
+
+// don't use mp_obj_is_type_unsafe directly; use mp_obj_is_type which provides additional safety checks.
+// use the former only if you need to bypass these checks (because you've already checked everything)
+#define mp_obj_is_type_unsafe(o, t) (mp_obj_is_obj(o) && (((mp_obj_base_t*)MP_OBJ_TO_PTR(o))->type == (t)))
+// type checks are split to a separate, constant result macro. I found this way to work without hindering GCC's
+// optimizations (other tricks like using ({ expr; exper; }) or (exp, expr, expr) in mp_obj_is_type result in
+// missed optimizations. however, this way GCC retains the optimizations it used to have before these checks
+// were added).
+#define mp_obj_is_type_static_checks(t) (                    \
+     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_bool),     \
+     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_int),      \
+     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_str),      \
+     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_NoneType), \
+     1)
+// this does not work for checking int, str, bool and fun; use below macros for that
+#define mp_obj_is_type(o, t) (mp_obj_is_type_static_checks(t) && mp_obj_is_type_unsafe(o, t))
+#define mp_obj_is_int(o) (mp_obj_is_small_int(o) || mp_obj_is_type_unsafe(o, &mp_type_int))
+#define mp_obj_is_str(o) (mp_obj_is_qstr(o) || mp_obj_is_type_unsafe(o, &mp_type_str))
 #if MICROPY_OBJ_IMMEDIATE_OBJS
 // no need to check mp_type_bool - bool objects have only these 2 possible values.
 #define mp_obj_is_bool(o) ((o) == mp_const_true || (o) == mp_const_false)
 #else
-#define mp_obj_is_bool(o) mp_obj_is_type(o, &mp_type_bool)
+#define mp_obj_is_bool(o) mp_obj_is_type_unsafe(o, &mp_type_bool)
 #endif
 #define mp_obj_is_str_or_bytes(o) (mp_obj_is_qstr(o) || (mp_obj_is_obj(o) && ((mp_obj_base_t*)MP_OBJ_TO_PTR(o))->type->binary_op == mp_obj_str_binary_op))
 #define mp_obj_is_fun(o) (mp_obj_is_obj(o) && (((mp_obj_base_t*)MP_OBJ_TO_PTR(o))->type->name == MP_QSTR_function))

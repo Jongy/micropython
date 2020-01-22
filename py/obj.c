@@ -275,7 +275,7 @@ mp_int_t mp_obj_get_int(mp_const_obj_t arg) {
         return 1;
     } else if (mp_obj_is_small_int(arg)) {
         return MP_OBJ_SMALL_INT_VALUE(arg);
-    } else if (mp_obj_is_type(arg, &mp_type_int)) {
+    } else if (mp_obj_is_type_unsafe(arg, &mp_type_int)) {
         return mp_obj_int_get_checked(arg);
     } else {
         mp_obj_t res = mp_unary_op(MP_UNARY_OP_INT, (mp_obj_t)arg);
@@ -301,7 +301,7 @@ bool mp_obj_get_int_maybe(mp_const_obj_t arg, mp_int_t *value) {
         *value = 1;
     } else if (mp_obj_is_small_int(arg)) {
         *value = MP_OBJ_SMALL_INT_VALUE(arg);
-    } else if (mp_obj_is_type(arg, &mp_type_int)) {
+    } else if (mp_obj_is_type_unsafe(arg, &mp_type_int)) {
         *value = mp_obj_int_get_checked(arg);
     } else {
         return false;
@@ -320,7 +320,7 @@ bool mp_obj_get_float_maybe(mp_obj_t arg, mp_float_t *value) {
     } else if (mp_obj_is_small_int(arg)) {
         val = MP_OBJ_SMALL_INT_VALUE(arg);
     #if MICROPY_LONGINT_IMPL != MICROPY_LONGINT_IMPL_NONE
-    } else if (mp_obj_is_type(arg, &mp_type_int)) {
+    } else if (mp_obj_is_type_unsafe(arg, &mp_type_int)) {
         val = mp_obj_int_as_float_impl(arg);
     #endif
     } else if (mp_obj_is_float(arg)) {
@@ -360,7 +360,7 @@ void mp_obj_get_complex(mp_obj_t arg, mp_float_t *real, mp_float_t *imag) {
         *real = MP_OBJ_SMALL_INT_VALUE(arg);
         *imag = 0;
     #if MICROPY_LONGINT_IMPL != MICROPY_LONGINT_IMPL_NONE
-    } else if (mp_obj_is_type(arg, &mp_type_int)) {
+    } else if (mp_obj_is_type_unsafe(arg, &mp_type_int)) {
         *real = mp_obj_int_as_float_impl(arg);
         *imag = 0;
     #endif
