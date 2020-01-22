@@ -672,11 +672,11 @@ extern const struct _mp_obj_exception_t mp_const_GeneratorExit_obj;
 // optimizations (other tricks like using ({ expr; exper; }) or (exp, expr, expr) in mp_obj_is_type result in
 // missed optimizations. however, this way GCC retains the optimizations it used to have before these checks
 // were added).
-#define mp_obj_is_type_static_checks(t) (                    \
-     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_bool),     \
-     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_int),      \
-     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_str),      \
-     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_NoneType), \
+#define mp_obj_is_type_static_checks(t) (                                                      \
+     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_bool), assert((t) != &mp_type_bool),         \
+     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_int), assert((t) != &mp_type_int),           \
+     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_str), assert((t) != &mp_type_str),           \
+     MP_STATIC_ASSERT_NOT_ON_MSVC((t) != &mp_type_NoneType), assert((t) != &mp_type_NoneType), \
      1)
 // this does not work for checking int, str, bool and fun; use below macros for that
 #define mp_obj_is_type(o, t) (mp_obj_is_type_static_checks(t) && mp_obj_is_type_unsafe(o, t))
