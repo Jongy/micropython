@@ -56,10 +56,11 @@ const mp_obj_module_t mp_module___main__ = {
     .base = { &mp_type_module },
     .globals = (mp_obj_dict_t*)&MP_STATE_VM(dict_main),
 };
-
+void mp_hal_stdout_tx_strn(const char *str, size_t len);
 void mp_init(void) {
+    mp_hal_stdout_tx_strn("here3!\n", 7);
     qstr_init();
-
+mp_hal_stdout_tx_strn("here4!\n", 7);
     // no pending exceptions to start with
     MP_STATE_VM(mp_pending_exception) = MP_OBJ_NULL;
     #if MICROPY_ENABLE_SCHEDULER
@@ -80,7 +81,7 @@ void mp_init(void) {
     MP_STATE_VM(mp_kbd_exception).traceback_data = NULL;
     MP_STATE_VM(mp_kbd_exception).args = (mp_obj_tuple_t*)&mp_const_empty_tuple_obj;
     #endif
-
+    mp_hal_stdout_tx_strn("here5!\n", 7);
     #if MICROPY_ENABLE_COMPILER
     // optimization disabled by default
     MP_STATE_VM(mp_optimise_value) = 0;
@@ -91,7 +92,7 @@ void mp_init(void) {
 
     // init global module dict
     mp_obj_dict_init(&MP_STATE_VM(mp_loaded_modules_dict), 3);
-
+mp_hal_stdout_tx_strn("here6!\n", 7);
     // initialise the __main__ module
     mp_obj_dict_init(&MP_STATE_VM(dict_main), 1);
     mp_obj_dict_store(MP_OBJ_FROM_PTR(&MP_STATE_VM(dict_main)), MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR___main__));
@@ -99,7 +100,7 @@ void mp_init(void) {
     // locals = globals for outer module (see Objects/frameobject.c/PyFrame_New())
     mp_locals_set(&MP_STATE_VM(dict_main));
     mp_globals_set(&MP_STATE_VM(dict_main));
-
+mp_hal_stdout_tx_strn("here7!\n", 7);
     #if MICROPY_CAN_OVERRIDE_BUILTINS
     // start with no extensions to builtins
     MP_STATE_VM(mp_module_builtins_override_dict) = NULL;
@@ -141,6 +142,7 @@ void mp_init(void) {
     #endif
 
     MP_THREAD_GIL_ENTER();
+    mp_hal_stdout_tx_strn("here8!\n", 7);
 }
 
 void mp_deinit(void) {
