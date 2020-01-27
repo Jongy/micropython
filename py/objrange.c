@@ -207,7 +207,7 @@ STATIC void range_attr(mp_obj_t o_in, qstr attr, mp_obj_t *dest) {
 }
 #endif
 
-const mp_obj_type_t mp_type_range = {
+const mp_obj_type_t PROGMEM mp_type_range = {
     { &mp_type_type },
     .name = MP_QSTR_range,
     .print = range_print,

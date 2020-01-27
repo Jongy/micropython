@@ -1081,7 +1081,7 @@ STATIC void type_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     }
 }
 
-const mp_obj_type_t mp_type_type = {
+const mp_obj_type_t PROGMEM mp_type_type = {
     { &mp_type_type },
     .name = MP_QSTR_type,
     .print = type_print,
@@ -1296,7 +1296,7 @@ STATIC void super_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     mp_obj_class_lookup(&lookup, &mp_type_object);
 }
 
-const mp_obj_type_t mp_type_super = {
+const mp_obj_type_t PROGMEM mp_type_super = {
     { &mp_type_type },
     .name = MP_QSTR_super,
     .print = super_print,
@@ -1414,13 +1414,13 @@ STATIC mp_obj_t static_class_method_make_new(const mp_obj_type_t *self, size_t n
     return MP_OBJ_FROM_PTR(o);
 }
 
-const mp_obj_type_t mp_type_staticmethod = {
+const mp_obj_type_t PROGMEM mp_type_staticmethod = {
     { &mp_type_type },
     .name = MP_QSTR_staticmethod,
     .make_new = static_class_method_make_new,
 };
 
-const mp_obj_type_t mp_type_classmethod = {
+const mp_obj_type_t PROGMEM mp_type_classmethod = {
     { &mp_type_type },
     .name = MP_QSTR_classmethod,
     .make_new = static_class_method_make_new,

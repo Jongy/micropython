@@ -61,7 +61,7 @@ STATIC mp_obj_t filter_iternext(mp_obj_t self_in) {
     return MP_OBJ_STOP_ITERATION;
 }
 
-const mp_obj_type_t mp_type_filter = {
+const mp_obj_type_t PROGMEM mp_type_filter = {
     { &mp_type_type },
     .name = MP_QSTR_filter,
     .make_new = filter_make_new,

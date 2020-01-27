@@ -71,7 +71,7 @@ STATIC mp_obj_t gen_wrap_call(mp_obj_t self_in, size_t n_args, size_t n_kw, cons
     return MP_OBJ_FROM_PTR(o);
 }
 
-const mp_obj_type_t mp_type_gen_wrap = {
+const mp_obj_type_t PROGMEM mp_type_gen_wrap = {
     { &mp_type_type },
     .name = MP_QSTR_generator,
     .call = gen_wrap_call,
@@ -124,7 +124,7 @@ STATIC mp_obj_t native_gen_wrap_call(mp_obj_t self_in, size_t n_args, size_t n_k
     return MP_OBJ_FROM_PTR(o);
 }
 
-const mp_obj_type_t mp_type_native_gen_wrap = {
+const mp_obj_type_t PROGMEM mp_type_native_gen_wrap = {
     { &mp_type_type },
     .name = MP_QSTR_generator,
     .call = native_gen_wrap_call,
@@ -340,7 +340,7 @@ STATIC const mp_rom_map_elem_t gen_instance_locals_dict_table[] = {
 
 STATIC MP_DEFINE_CONST_DICT(gen_instance_locals_dict, gen_instance_locals_dict_table);
 
-const mp_obj_type_t mp_type_gen_instance = {
+const mp_obj_type_t PROGMEM mp_type_gen_instance = {
     { &mp_type_type },
     .name = MP_QSTR_generator,
     .print = gen_instance_print,

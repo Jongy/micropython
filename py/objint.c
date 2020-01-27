@@ -453,7 +453,7 @@ STATIC const mp_rom_map_elem_t int_locals_dict_table[] = {
 
 STATIC MP_DEFINE_CONST_DICT(int_locals_dict, int_locals_dict_table);
 
-const mp_obj_type_t mp_type_int = {
+const mp_obj_type_t PROGMEM mp_type_int = {
     { &mp_type_type },
     .name = MP_QSTR_int,
     .print = mp_obj_int_print,

@@ -45,7 +45,7 @@ STATIC mp_obj_t polymorph_it_iternext(mp_obj_t self_in) {
     return self->iternext(self_in);
 }
 
-const mp_obj_type_t mp_type_polymorph_iter = {
+const mp_obj_type_t PROGMEM mp_type_polymorph_iter = {
     { &mp_type_type },
     .name = MP_QSTR_iterator,
     .getiter = mp_identity_getiter,

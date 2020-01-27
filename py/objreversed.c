@@ -69,7 +69,7 @@ STATIC mp_obj_t reversed_iternext(mp_obj_t self_in) {
     return mp_obj_subscr(self->seq, MP_OBJ_NEW_SMALL_INT(self->cur_index), MP_OBJ_SENTINEL);
 }
 
-const mp_obj_type_t mp_type_reversed = {
+const mp_obj_type_t PROGMEM mp_type_reversed = {
     { &mp_type_type },
     .name = MP_QSTR_reversed,
     .make_new = reversed_make_new,
