@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     int stack_dummy;
     uart_init();
 
-    mp_hal_stdout_tx_strn("I'm up!\n", 8);
+    mp_hal_stdout_tx_strn("starting...\n");
 
 soft_reset:
     MP_STATE_THREAD(stack_top) = (char*)&stack_dummy;
@@ -30,8 +30,6 @@ soft_reset:
     #if MICROPY_ENABLE_GC
     gc_init(heap, heap + sizeof(heap));
     #endif
-
-    mp_hal_stdout_tx_strn("here1!\n", 7);
 
     // // flash green led for 150ms to indicate boot
     // led_state(1, 0);
@@ -41,8 +39,6 @@ soft_reset:
     // led_state(3, 0);
 
     mp_init();
-
-    mp_hal_stdout_tx_strn("here10!\n", 8);
 
     for (;;) {
         if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {

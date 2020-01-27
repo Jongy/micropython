@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <avr/pgmspace.h>
 
 // options to control how MicroPython is built
 
@@ -12,7 +13,7 @@
 #define MICROPY_COMP_CONST          (0)
 #define MICROPY_MEM_STATS           (0)
 #define MICROPY_DEBUG_PRINTERS      (0)
-#define MICROPY_ENABLE_GC           (0)
+#define MICROPY_ENABLE_GC           (1)
 #define MICROPY_REPL_EVENT_DRIVEN   (0)
 #define MICROPY_HELPER_REPL         (1)
 #define MICROPY_HELPER_LEXER_UNIX   (0)
