@@ -76,7 +76,7 @@ enum {
 };
 
 // Define an array of actions corresponding to each rule
-STATIC const uint8_t rule_act_table[] PROGMEM = {
+STATIC const uint8_t rule_act_table[]MP_PROGMEM= {
 #define or(n)                   (RULE_ACT_OR | n)
 #define and(n)                  (RULE_ACT_AND | n)
 #define and_ident(n)            (RULE_ACT_AND | n | RULE_ACT_ALLOW_IDENT)
@@ -109,7 +109,7 @@ STATIC const uint8_t rule_act_table[] PROGMEM = {
 };
 
 // Define the argument data for each rule, as a combined array
-STATIC const uint16_t rule_arg_combined_table[] PROGMEM = {
+STATIC const uint16_t rule_arg_combined_table[]MP_PROGMEM= {
 #define tok(t)                  (RULE_ARG_TOK | MP_TOKEN_##t)
 #define rule(r)                 (RULE_ARG_RULE | RULE_##r)
 #define opt_rule(r)             (RULE_ARG_OPT_RULE | RULE_##r)
@@ -162,7 +162,7 @@ enum {
 // data, which indexes rule_arg_combined_table.  The offsets require 9 bits of
 // storage but only the lower 8 bits are stored here.  The 9th bit is computed
 // in get_rule_arg using the FIRST_RULE_WITH_OFFSET_ABOVE_255 constant.
-STATIC const uint8_t rule_arg_offset_table[] PROGMEM = {
+STATIC const uint8_t rule_arg_offset_table[]MP_PROGMEM= {
 #define DEF_RULE(rule, comp, kind, ...) RULE_ARG_OFFSET(rule, __VA_ARGS__) & 0xff,
 #define DEF_RULE_NC(rule, kind, ...)
 #include "py/grammar.h"
@@ -242,7 +242,7 @@ typedef struct _parser_t {
 } parser_t;
 
 STATIC const uint16_t *get_rule_arg(uint8_t r_id) {
-    size_t off = pgm_read_word(&rule_arg_offset_table[r_id]);
+    size_t off = MP_PGM_ACCESS(rule_arg_offset_table[r_id]);
     if (r_id >= FIRST_RULE_WITH_OFFSET_ABOVE_255) {
         off |= 0x100;
     }
@@ -861,7 +861,7 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
         size_t i; // state for the current rule
         size_t rule_src_line; // source line for the first token matched by the current rule
         uint8_t rule_id = pop_rule(&parser, &i, &rule_src_line);
-        uint8_t rule_act = pgm_read_word(&rule_act_table[rule_id]);
+        uint8_t rule_act = MP_PGM_ACCESS(rule_act_table[rule_id]);
         const uint16_t *rule_arg = get_rule_arg(rule_id);
         size_t n = rule_act & RULE_ACT_ARG_MASK;
 
@@ -882,9 +882,9 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
                     backtrack = false;
                 }
                 for (; i < n; ++i) {
-                    uint16_t kind = pgm_read_word(&rule_arg[i]) & RULE_ARG_KIND_MASK;
+                    uint16_t kind = MP_PGM_ACCESS(rule_arg[i]) & RULE_ARG_KIND_MASK;
                     if (kind == RULE_ARG_TOK) {
-                        if (lex->tok_kind == (pgm_read_word(&rule_arg[i]) & RULE_ARG_ARG_MASK)) {
+                        if (lex->tok_kind == (MP_PGM_ACCESS(rule_arg[i]) & RULE_ARG_ARG_MASK)) {
                             push_result_token(&parser, rule_id);
                             mp_lexer_to_next(lex);
                             goto next_rule;
@@ -894,7 +894,7 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
                         if (i + 1 < n) {
                             push_rule(&parser, rule_src_line, rule_id, i + 1); // save this or-rule
                         }
-                        push_rule_from_arg(&parser, pgm_read_word(&rule_arg[i])); // push child of or-rule
+                        push_rule_from_arg(&parser, MP_PGM_ACCESS(rule_arg[i])); // push child of or-rule
                         goto next_rule;
                     }
                 }
@@ -906,7 +906,7 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
                 // failed, backtrack if we can, else syntax error
                 if (backtrack) {
                     assert(i > 0);
-                    if ((pgm_read_word(&rule_arg[i - 1]) & RULE_ARG_KIND_MASK) == RULE_ARG_OPT_RULE) {
+                    if ((MP_PGM_ACCESS(rule_arg[i - 1]) & RULE_ARG_KIND_MASK) == RULE_ARG_OPT_RULE) {
                         // an optional rule that failed, so continue with next arg
                         push_result_node(&parser, MP_PARSE_NODE_NULL);
                         backtrack = false;
@@ -923,9 +923,9 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
 
                 // progress through the rule
                 for (; i < n; ++i) {
-                    if ((pgm_read_word(&rule_arg[i]) & RULE_ARG_KIND_MASK) == RULE_ARG_TOK) {
+                    if ((MP_PGM_ACCESS(rule_arg[i]) & RULE_ARG_KIND_MASK) == RULE_ARG_TOK) {
                         // need to match a token
-                        mp_token_kind_t tok_kind = pgm_read_word(&rule_arg[i]) & RULE_ARG_ARG_MASK;
+                        mp_token_kind_t tok_kind = MP_PGM_ACCESS(rule_arg[i]) & RULE_ARG_ARG_MASK;
                         if (lex->tok_kind == tok_kind) {
                             // matched token
                             if (tok_kind == MP_TOKEN_NAME) {
@@ -945,7 +945,7 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
                         }
                     } else {
                         push_rule(&parser, rule_src_line, rule_id, i + 1); // save this and-rule
-                        push_rule_from_arg(&parser, pgm_read_word(&rule_arg[i])); // push child of and-rule
+                        push_rule_from_arg(&parser, MP_PGM_ACCESS(rule_arg[i])); // push child of and-rule
                         goto next_rule;
                     }
                 }
@@ -976,8 +976,8 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
                 size_t num_not_nil = 0;
                 for (size_t x = n; x > 0;) {
                     --x;
-                    if ((pgm_read_word(&rule_arg[x]) & RULE_ARG_KIND_MASK) == RULE_ARG_TOK) {
-                        mp_token_kind_t tok_kind = pgm_read_word(&rule_arg[x]) & RULE_ARG_ARG_MASK;
+                    if ((MP_PGM_ACCESS(rule_arg[x]) & RULE_ARG_KIND_MASK) == RULE_ARG_TOK) {
+                        mp_token_kind_t tok_kind = MP_PGM_ACCESS(rule_arg[x]) & RULE_ARG_ARG_MASK;
                         if (tok_kind == MP_TOKEN_NAME) {
                             // only tokens which were names are pushed to stack
                             i += 1;
@@ -1055,7 +1055,7 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
                     }
                 } else {
                     for (;;) {
-                        size_t arg = pgm_read_word(&rule_arg[i & 1 & n]);
+                        size_t arg = MP_PGM_ACCESS(rule_arg[i & 1 & n]);
                         if ((arg & RULE_ARG_KIND_MASK) == RULE_ARG_TOK) {
                             if (lex->tok_kind == (arg & RULE_ARG_ARG_MASK)) {
                                 if (i & 1 & n) {
@@ -1084,7 +1084,7 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
 
                 // compute number of elements in list, result in i
                 i -= 1;
-                if ((n & 1) && (pgm_read_word(&rule_arg[1]) & RULE_ARG_KIND_MASK) == RULE_ARG_TOK) {
+                if ((n & 1) && (MP_PGM_ACCESS(rule_arg[1]) & RULE_ARG_KIND_MASK) == RULE_ARG_TOK) {
                     // don't count separators when they are tokens
                     i = (i + 1) / 2;
                 }

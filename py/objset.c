@@ -536,7 +536,7 @@ STATIC const mp_rom_map_elem_t set_locals_dict_table[] = {
 };
 STATIC MP_DEFINE_CONST_DICT(set_locals_dict, set_locals_dict_table);
 
-const mp_obj_type_t PROGMEM mp_type_set = {
+const mp_obj_type_t MP_PROGMEM mp_type_set = {
     { &mp_type_type },
     .name = MP_QSTR_set,
     .print = set_print,
@@ -561,7 +561,7 @@ STATIC const mp_rom_map_elem_t frozenset_locals_dict_table[] = {
 };
 STATIC MP_DEFINE_CONST_DICT(frozenset_locals_dict, frozenset_locals_dict_table);
 
-const mp_obj_type_t PROGMEM mp_type_frozenset = {
+const mp_obj_type_t MP_PROGMEM mp_type_frozenset = {
     { &mp_type_type },
     .name = MP_QSTR_frozenset,
     .print = set_print,

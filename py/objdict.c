@@ -557,7 +557,7 @@ STATIC const mp_rom_map_elem_t dict_locals_dict_table[] = {
 
 STATIC MP_DEFINE_CONST_DICT(dict_locals_dict, dict_locals_dict_table);
 
-const mp_obj_type_t PROGMEM mp_type_dict = {
+const mp_obj_type_t mp_type_dict MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_dict,
     .print = dict_print,
@@ -570,7 +570,7 @@ const mp_obj_type_t PROGMEM mp_type_dict = {
 };
 
 #if MICROPY_PY_COLLECTIONS_ORDEREDDICT
-const mp_obj_type_t PROGMEM mp_type_ordereddict = {
+const mp_obj_type_t mp_type_ordereddict MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_OrderedDict,
     .print = dict_print,

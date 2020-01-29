@@ -608,7 +608,7 @@ MP_DEFINE_CONST_FUN_OBJ_0(mp_builtin_locals_obj, mp_builtin_locals);
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_id_obj, mp_obj_id);
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_len_obj, mp_obj_len);
 
-STATIC const mp_rom_map_elem_t mp_module_builtins_globals_table[] PROGMEM = {
+STATIC const mp_rom_map_elem_t mp_module_builtins_globals_table[]MP_PROGMEM= {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_builtins) },
 
     // built-in core functions

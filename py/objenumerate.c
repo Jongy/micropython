@@ -69,7 +69,7 @@ STATIC mp_obj_t enumerate_make_new(const mp_obj_type_t *type, size_t n_args, siz
     return MP_OBJ_FROM_PTR(o);
 }
 
-const mp_obj_type_t PROGMEM mp_type_enumerate = {
+const mp_obj_type_t mp_type_enumerate MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_enumerate,
     .make_new = enumerate_make_new,

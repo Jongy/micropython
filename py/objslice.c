@@ -92,7 +92,7 @@ STATIC const mp_rom_map_elem_t slice_locals_dict_table[] = {
 STATIC MP_DEFINE_CONST_DICT(slice_locals_dict, slice_locals_dict_table);
 #endif
 
-const mp_obj_type_t PROGMEM mp_type_slice = {
+const mp_obj_type_t MP_PROGMEM mp_type_slice = {
     { &mp_type_type },
     .name = MP_QSTR_slice,
     .print = slice_print,

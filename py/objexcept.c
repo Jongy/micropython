@@ -216,7 +216,7 @@ void mp_obj_exception_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     }
 }
 
-const mp_obj_type_t mp_type_BaseException PROGMEM = {
+const mp_obj_type_t mp_type_BaseException MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_BaseException,
     .print = mp_obj_exception_print,

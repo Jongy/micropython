@@ -84,7 +84,7 @@ STATIC mp_obj_t bool_binary_op(mp_binary_op_t op, mp_obj_t lhs_in, mp_obj_t rhs_
     return mp_binary_op(op, MP_OBJ_NEW_SMALL_INT(value), rhs_in);
 }
 
-const mp_obj_type_t PROGMEM mp_type_bool = {
+const mp_obj_type_t mp_type_bool MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_bool,
     .print = bool_print,

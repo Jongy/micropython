@@ -172,7 +172,7 @@ STATIC void code_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     }
 }
 
-const mp_obj_type_t PROGMEM mp_type_code = {
+const mp_obj_type_t MP_PROGMEM mp_type_code = {
     { &mp_type_type },
     .name = MP_QSTR_code,
     .print = code_print,
@@ -240,7 +240,7 @@ STATIC void frame_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     }
 }
 
-const mp_obj_type_t PROGMEM mp_type_frame = {
+const mp_obj_type_t MP_PROGMEM mp_type_frame = {
     { &mp_type_type },
     .name = MP_QSTR_frame,
     .print = frame_print,

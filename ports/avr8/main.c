@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     int stack_dummy;
     uart_init();
 
-    mp_hal_stdout_tx_strn("starting...\n");
+    mp_hal_stdout_tx_strn("starting...\n", sizeof("starting...\n") - 1);
 
 soft_reset:
     MP_STATE_THREAD(stack_top) = (char*)&stack_dummy;
@@ -30,13 +30,6 @@ soft_reset:
     #if MICROPY_ENABLE_GC
     gc_init(heap, heap + sizeof(heap));
     #endif
-
-    // // flash green led for 150ms to indicate boot
-    // led_state(1, 0);
-    // led_state(2, 0);
-    // led_state(3, 1);
-    // mp_hal_delay_ms(150);
-    // led_state(3, 0);
 
     mp_init();
 

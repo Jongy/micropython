@@ -69,7 +69,48 @@ typedef int mp_off_t;
 // We need to provide a declaration/definition of alloca()
 #include <alloca.h>
 
-#define MICROPY_HW_BOARD_NAME "avr"
+#ifdef __AVR_ATmega2560__
+#define MICROPY_HW_BOARD_NAME "atmega2560"
+#else
+#error unsupported!
+#endif
+
 #define MICROPY_HW_MCU_NAME "avr"
 
 #define MP_STATE_PORT MP_STATE_VM
+
+
+#define MP_PROGMEM PROGMEM
+
+static inline uint8_t load_pgmem_u8(const void *addr) {
+    return pgm_read_byte(addr);
+}
+
+static inline uint16_t load_pgmem_u16(const void *addr) {
+    return pgm_read_word(addr);
+}
+
+static inline uint32_t load_pgmem_u32(const void *addr) {
+    return pgm_read_dword(addr);
+}
+
+static inline int8_t load_pgmem_s8(const void *addr) {
+    return (int8_t)pgm_read_byte(addr);
+}
+
+static inline int16_t load_pgmem_s16(const void *addr) {
+    return (int16_t)pgm_read_word(addr);
+}
+
+static inline int32_t load_pgmem_s32(const void *addr) {
+    return (int32_t)pgm_read_dword(addr);
+}
+
+#define MP_PGM_ACCESS(x)                                                       \
+    __builtin_types_compatible_p(typeof(x), uint8_t)  ? load_pgmem_u8(&(x))  : \
+    __builtin_types_compatible_p(typeof(x), uint16_t) ? load_pgmem_u16(&(x)) : \
+    __builtin_types_compatible_p(typeof(x), uint32_t) ? load_pgmem_u32(&(x)) : \
+    __builtin_types_compatible_p(typeof(x), int8_t)   ? load_pgmem_s8(&(x))  : \
+    __builtin_types_compatible_p(typeof(x), int16_t)  ? load_pgmem_s16(&(x)) : \
+    __builtin_types_compatible_p(typeof(x), int32_t)  ? load_pgmem_s32(&(x)) : \
+    0  // just crash immediately...

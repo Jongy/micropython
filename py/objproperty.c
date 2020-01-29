@@ -91,7 +91,7 @@ STATIC const mp_rom_map_elem_t property_locals_dict_table[] = {
 
 STATIC MP_DEFINE_CONST_DICT(property_locals_dict, property_locals_dict_table);
 
-const mp_obj_type_t PROGMEM mp_type_property = {
+const mp_obj_type_t MP_PROGMEM mp_type_property = {
     { &mp_type_type },
     .name = MP_QSTR_property,
     .make_new = property_make_new,

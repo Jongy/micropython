@@ -183,7 +183,7 @@ STATIC mp_obj_t float_binary_op(mp_binary_op_t op, mp_obj_t lhs_in, mp_obj_t rhs
     }
 }
 
-const mp_obj_type_t PROGMEM mp_type_float = {
+const mp_obj_type_t mp_type_float MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_float,
     .print = float_print,

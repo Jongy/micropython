@@ -156,7 +156,7 @@ STATIC const mp_rom_map_elem_t deque_locals_dict_table[] = {
 
 STATIC MP_DEFINE_CONST_DICT(deque_locals_dict, deque_locals_dict_table);
 
-const mp_obj_type_t PROGMEM mp_type_deque = {
+const mp_obj_type_t mp_type_deque MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_deque,
     .make_new = deque_make_new,

@@ -145,7 +145,7 @@ STATIC void complex_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     }
 }
 
-const mp_obj_type_t PROGMEM mp_type_complex = {
+const mp_obj_type_t mp_type_complex MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_complex,
     .print = complex_print,

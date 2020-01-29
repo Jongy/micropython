@@ -473,7 +473,7 @@ mp_obj_t mp_binary_op(mp_binary_op_t op, mp_obj_t lhs, mp_obj_t rhs) {
                         #if MICROPY_PY_BUILTINS_FLOAT
                         return mp_obj_float_binary_op(op, lhs_val, rhs);
                         #else
-                        mp_raise_ValueError("negative power with no float support");
+                        mp_raise_ValueError(PSTR("negative power with no float support"));
                         #endif
                     } else {
                         mp_int_t ans = 1;

@@ -56,7 +56,7 @@ STATIC mp_obj_t fun_builtin_0_call(mp_obj_t self_in, size_t n_args, size_t n_kw,
     return self->fun._0();
 }
 
-const mp_obj_type_t PROGMEM mp_type_fun_builtin_0 = {
+const mp_obj_type_t mp_type_fun_builtin_0 MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_builtin_0_call,
@@ -70,7 +70,7 @@ STATIC mp_obj_t fun_builtin_1_call(mp_obj_t self_in, size_t n_args, size_t n_kw,
     return self->fun._1(args[0]);
 }
 
-const mp_obj_type_t PROGMEM mp_type_fun_builtin_1 = {
+const mp_obj_type_t mp_type_fun_builtin_1 MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_builtin_1_call,
@@ -84,7 +84,7 @@ STATIC mp_obj_t fun_builtin_2_call(mp_obj_t self_in, size_t n_args, size_t n_kw,
     return self->fun._2(args[0], args[1]);
 }
 
-const mp_obj_type_t PROGMEM mp_type_fun_builtin_2 = {
+const mp_obj_type_t mp_type_fun_builtin_2 MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_builtin_2_call,
@@ -98,7 +98,7 @@ STATIC mp_obj_t fun_builtin_3_call(mp_obj_t self_in, size_t n_args, size_t n_kw,
     return self->fun._3(args[0], args[1], args[2]);
 }
 
-const mp_obj_type_t PROGMEM mp_type_fun_builtin_3 = {
+const mp_obj_type_t mp_type_fun_builtin_3 MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_builtin_3_call,
@@ -128,7 +128,7 @@ STATIC mp_obj_t fun_builtin_var_call(mp_obj_t self_in, size_t n_args, size_t n_k
     }
 }
 
-const mp_obj_type_t PROGMEM mp_type_fun_builtin_var = {
+const mp_obj_type_t mp_type_fun_builtin_var MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_builtin_var_call,
@@ -353,7 +353,7 @@ void mp_obj_fun_bc_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
 }
 #endif
 
-const mp_obj_type_t PROGMEM mp_type_fun_bc = {
+const mp_obj_type_t mp_type_fun_bc MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_function,
 #if MICROPY_CPYTHON_COMPAT

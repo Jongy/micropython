@@ -1970,7 +1970,7 @@ STATIC MP_DEFINE_CONST_DICT(str8_locals_dict, str8_locals_dict_table);
 #if !MICROPY_PY_BUILTINS_STR_UNICODE
 STATIC mp_obj_t mp_obj_new_str_iterator(mp_obj_t str, mp_obj_iter_buf_t *iter_buf);
 
-const mp_obj_type_t PROGMEM mp_type_str = {
+const mp_obj_type_t MP_PROGMEM mp_type_str = {
     { &mp_type_type },
     .name = MP_QSTR_str,
     .print = str_print,
@@ -1984,7 +1984,7 @@ const mp_obj_type_t PROGMEM mp_type_str = {
 #endif
 
 // Reuses most of methods from str
-const mp_obj_type_t PROGMEM mp_type_bytes = {
+const mp_obj_type_t MP_PROGMEM mp_type_bytes = {
     { &mp_type_type },
     .name = MP_QSTR_bytes,
     .print = str_print,

@@ -120,6 +120,14 @@
 #define MICROPY_OBJ_IMMEDIATE_OBJS (MICROPY_OBJ_REPR != MICROPY_OBJ_REPR_D)
 #endif
 
+#ifndef MP_PROGMEM
+#define MP_PROGMEM
+#endif
+
+#ifndef MP_PGM_ACCESS
+#define MP_PGM_ACCESS(x) (x)
+#endif
+
 /*****************************************************************************/
 /* Memory allocation policy                                                  */
 

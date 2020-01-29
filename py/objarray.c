@@ -540,7 +540,7 @@ STATIC MP_DEFINE_CONST_DICT(array_locals_dict, array_locals_dict_table);
 #endif
 
 #if MICROPY_PY_ARRAY
-const mp_obj_type_t PROGMEM mp_type_array = {
+const mp_obj_type_t MP_PROGMEM mp_type_array = {
     { &mp_type_type },
     .name = MP_QSTR_array,
     .print = array_print,
@@ -555,7 +555,7 @@ const mp_obj_type_t PROGMEM mp_type_array = {
 #endif
 
 #if MICROPY_PY_BUILTINS_BYTEARRAY
-const mp_obj_type_t PROGMEM mp_type_bytearray = {
+const mp_obj_type_t MP_PROGMEM mp_type_bytearray = {
     { &mp_type_type },
     .name = MP_QSTR_bytearray,
     .print = array_print,
@@ -570,7 +570,7 @@ const mp_obj_type_t PROGMEM mp_type_bytearray = {
 #endif
 
 #if MICROPY_PY_BUILTINS_MEMORYVIEW
-const mp_obj_type_t PROGMEM mp_type_memoryview = {
+const mp_obj_type_t MP_PROGMEM mp_type_memoryview = {
     { &mp_type_type },
     .name = MP_QSTR_memoryview,
     .make_new = memoryview_make_new,

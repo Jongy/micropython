@@ -81,7 +81,7 @@ mp_obj_t mp_obj_new_attrtuple(const qstr *fields, size_t n, const mp_obj_t *item
     return MP_OBJ_FROM_PTR(o);
 }
 
-const mp_obj_type_t PROGMEM mp_type_attrtuple = {
+const mp_obj_type_t mp_type_attrtuple MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_tuple, // reuse tuple to save on a qstr
     .print = mp_obj_attrtuple_print,
