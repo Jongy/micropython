@@ -25,6 +25,11 @@
  * THE SOFTWARE.
  */
 
+#if MICROPY_UNIX_PROGMEM_TEST
+#define _GNU_SOURCE
+#include <sys/mman.h>
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -422,6 +427,34 @@ int main(int argc, char **argv) {
     // this function. main_() itself may have other functions inlined (with
     // their own stack variables), that's why we need this main/main_ split.
     mp_stack_ctrl_init();
+
+    #if MICROPY_UNIX_PROGMEM_TEST
+    // remap the progmem area so memory accesses to MP_PROGMEM without MP_PGM_ACCESS
+    // fail.
+    extern char __start_progmem;
+    extern char __stop_progmem;
+    void *spgm = &__start_progmem;
+    void *epgm = &__stop_progmem;
+
+    unsigned long pgm_size = (unsigned long)epgm - (unsigned long)spgm;
+    unsigned long new_pgm = (unsigned long)spgm + PROGMEM_OFFSET;
+    if (new_pgm & 0xfff) {
+        exit(1);
+    }
+
+    // move progmem to its new location
+    void *res = mremap(spgm, pgm_size, pgm_size, MAP_PRIVATE|MAP_FIXED, new_pgm);
+    if (res == MAP_FAILED) {
+        exit(1);
+    }
+
+    // make accesses to the old location fail violently.
+    res = mmap(spgm, pgm_size, PROT_NONE, MAP_PRIVATE|MAP_FIXED, -1, 0);
+    if (res == MAP_FAILED) {
+        exit(1);
+    }
+    #endif
+
     return main_(argc, argv);
 }
 
