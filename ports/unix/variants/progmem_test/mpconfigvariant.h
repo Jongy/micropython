@@ -25,12 +25,13 @@
  */
 
 #include <stdint.h>
-
+#include <stdio.h>
+#include <stdlib.h>
 
 // https://stackoverflow.com/a/3454066
-#define MP_PROGMEM __attribute__((section(".progmem,\"ax\",@progbits #")))
+#define MP_PROGMEM __attribute__((section("progmem,\"a\",@progbits#")))
 
-#define PROGMEM_OFFSET 0x1000000
+#define PROGMEM_OFFSET 0x1000000000
 
 static inline const void *translate_progmem_address(const void *addr) {
     return (const void*)((uintptr_t)addr + PROGMEM_OFFSET);
@@ -41,6 +42,7 @@ static inline uint8_t load_pgmem_u8(const void *addr) {
 }
 
 static inline uint16_t load_pgmem_u16(const void *addr) {
+    printf("requested from addr %p, loading instead %p\n", addr, translate_progmem_address(addr));
     return *(const uint16_t*)translate_progmem_address(addr);
 }
 
@@ -60,11 +62,16 @@ static inline int32_t load_pgmem_s32(const void *addr) {
     return *(const int32_t*)translate_progmem_address(addr);
 }
 
-#define MP_PGM_ACCESS(x)                                                       \
+static inline int die(void) {
+    abort();
+    return 0;
+}
+
+#define MP_PGM_ACCESS(x) \
     __builtin_types_compatible_p(typeof(x), uint8_t)  ? load_pgmem_u8(&(x))  : \
     __builtin_types_compatible_p(typeof(x), uint16_t) ? load_pgmem_u16(&(x)) : \
     __builtin_types_compatible_p(typeof(x), uint32_t) ? load_pgmem_u32(&(x)) : \
     __builtin_types_compatible_p(typeof(x), int8_t)   ? load_pgmem_s8(&(x))  : \
     __builtin_types_compatible_p(typeof(x), int16_t)  ? load_pgmem_s16(&(x)) : \
     __builtin_types_compatible_p(typeof(x), int32_t)  ? load_pgmem_s32(&(x)) : \
-    0  // just crash immediately...
+    die()

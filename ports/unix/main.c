@@ -417,6 +417,98 @@ STATIC void set_sys_argv(char *argv[], int argc, int start_arg) {
 
 MP_NOINLINE int main_(int argc, char **argv);
 
+#if MICROPY_UNIX_PROGMEM_TEST
+extern unsigned char __start_progmem;
+extern unsigned char __stop_progmem;
+static unsigned long text;
+
+static void sigsegv_handler(int sig, siginfo_t *si, void *ctx)
+{
+    ucontext_t *u = (ucontext_t *const)ctx;
+    const unsigned long addr = (unsigned long)si->si_addr;
+
+    if ((unsigned long)&__start_progmem <= addr && addr < (unsigned long)&__stop_progmem) {
+        unsigned long pc = (unsigned long)u->uc_mcontext.gregs[REG_RIP];
+        printf("progmem access: instruction at %lx accessed %lx\n", pc, addr);
+        printf("progmem access: instruction at %lx accessed %lx\n", pc - text, addr);
+        printf("progmem access: instruction at %lx accessed %lx\n", pc - text + 0x17000, addr);
+
+        // fix it - find out which register had this addr
+        exit(1);
+
+    } else {
+        printf("Another SIGSEGV! (address = %lx) exiting...\n", addr);
+        exit(1);
+    }
+}
+
+static void init_progmem(void) {
+    // TODO explain about these 2.
+    static char start_xx __attribute__((section("progmem,\"a\",@progbits\n.align 0x1000#"))) = 0x1;
+    static char end_xx __attribute__((section(".eh_frame_hdr.shit,\"a\",@progbits\n.align 0x1000#"))) = 0x1;
+    printf("ftr %p %p\n", &start_xx, &end_xx);
+
+    // remap the progmem area so memory accesses to MP_PROGMEM without MP_PGM_ACCESS
+    // fail.
+    unsigned char *spgm = &__start_progmem;
+    unsigned char *epgm = &__stop_progmem;
+
+    printf("remapping progmem %p - %p size %lu\n", spgm, epgm, epgm - spgm);
+
+    unsigned long pgm_size = (unsigned long)epgm - (unsigned long)spgm;
+    unsigned long new_pgm = (unsigned long)spgm + PROGMEM_OFFSET;
+    if ((unsigned long)spgm & 0xfff) {
+        printf("not aligned to page size!\n");
+        exit(1);
+    }
+    // TODO pgm_size is not page aligned, but next section really does start on the next page
+    // multiply. verify it somehow.
+
+    // move progmem to its new location
+    printf("new progmem is at %p\n", (void*)new_pgm);
+    void *res = mremap(spgm, pgm_size, pgm_size, MREMAP_MAYMOVE|MREMAP_FIXED, new_pgm);
+    if (res == MAP_FAILED) {
+        perror("mremap");
+        exit(1);
+    }
+
+    // make accesses to the old location fail violently.
+    // res = mmap(spgm, pgm_size, PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANON, -1, 0);
+    // if (res == MAP_FAILED) {
+    //     perror("mmap");
+    //     exit(1);
+    // }
+
+    printf("progmem remapped!\n");
+
+    struct sigaction sa = {
+        .sa_flags = SA_SIGINFO,
+        .sa_sigaction = sigsegv_handler,
+    };
+    sigemptyset(&sa.sa_mask);
+
+    if (sigaction(SIGSEGV, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(1);
+    }
+
+    char path[128];
+    sprintf(path, "/proc/%d/maps", getpid());
+    FILE *f = fopen(path, "r");
+    while (!feof(f)) {
+        char line[1024];
+        fgets(line, sizeof(line), f);
+
+        if (strstr(line, "r-xp")) {
+            *strchr(line, '-') = '\0';
+            printf("text %s\n", line);
+            text = strtoul(line, NULL, 16) + 0x850;
+            break;
+        }
+    }
+}
+#endif
+
 int main(int argc, char **argv) {
     #if MICROPY_PY_THREAD
     mp_thread_init();
@@ -429,30 +521,7 @@ int main(int argc, char **argv) {
     mp_stack_ctrl_init();
 
     #if MICROPY_UNIX_PROGMEM_TEST
-    // remap the progmem area so memory accesses to MP_PROGMEM without MP_PGM_ACCESS
-    // fail.
-    extern char __start_progmem;
-    extern char __stop_progmem;
-    void *spgm = &__start_progmem;
-    void *epgm = &__stop_progmem;
-
-    unsigned long pgm_size = (unsigned long)epgm - (unsigned long)spgm;
-    unsigned long new_pgm = (unsigned long)spgm + PROGMEM_OFFSET;
-    if (new_pgm & 0xfff) {
-        exit(1);
-    }
-
-    // move progmem to its new location
-    void *res = mremap(spgm, pgm_size, pgm_size, MAP_PRIVATE|MAP_FIXED, new_pgm);
-    if (res == MAP_FAILED) {
-        exit(1);
-    }
-
-    // make accesses to the old location fail violently.
-    res = mmap(spgm, pgm_size, PROT_NONE, MAP_PRIVATE|MAP_FIXED, -1, 0);
-    if (res == MAP_FAILED) {
-        exit(1);
-    }
+    init_progmem();
     #endif
 
     return main_(argc, argv);

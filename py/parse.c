@@ -76,7 +76,7 @@ enum {
 };
 
 // Define an array of actions corresponding to each rule
-STATIC const uint8_t rule_act_table[]MP_PROGMEM= {
+STATIC const uint8_t rule_act_table[] MP_PROGMEM = {
 #define or(n)                   (RULE_ACT_OR | n)
 #define and(n)                  (RULE_ACT_AND | n)
 #define and_ident(n)            (RULE_ACT_AND | n | RULE_ACT_ALLOW_IDENT)
@@ -109,7 +109,7 @@ STATIC const uint8_t rule_act_table[]MP_PROGMEM= {
 };
 
 // Define the argument data for each rule, as a combined array
-STATIC const uint16_t rule_arg_combined_table[]MP_PROGMEM= {
+STATIC const uint16_t rule_arg_combined_table[] MP_PROGMEM = {
 #define tok(t)                  (RULE_ARG_TOK | MP_TOKEN_##t)
 #define rule(r)                 (RULE_ARG_RULE | RULE_##r)
 #define opt_rule(r)             (RULE_ARG_OPT_RULE | RULE_##r)
@@ -162,7 +162,7 @@ enum {
 // data, which indexes rule_arg_combined_table.  The offsets require 9 bits of
 // storage but only the lower 8 bits are stored here.  The 9th bit is computed
 // in get_rule_arg using the FIRST_RULE_WITH_OFFSET_ABOVE_255 constant.
-STATIC const uint8_t rule_arg_offset_table[]MP_PROGMEM= {
+STATIC const uint8_t rule_arg_offset_table[] MP_PROGMEM = {
 #define DEF_RULE(rule, comp, kind, ...) RULE_ARG_OFFSET(rule, __VA_ARGS__) & 0xff,
 #define DEF_RULE_NC(rule, kind, ...)
 #include "py/grammar.h"
@@ -883,6 +883,8 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
                 }
                 for (; i < n; ++i) {
                     uint16_t kind = MP_PGM_ACCESS(rule_arg[i]) & RULE_ARG_KIND_MASK;
+                    printf("kind %u\n", kind);
+                    printf("real kind %u\n", rule_arg[i] & RULE_ARG_KIND_MASK);
                     if (kind == RULE_ARG_TOK) {
                         if (lex->tok_kind == (MP_PGM_ACCESS(rule_arg[i]) & RULE_ARG_ARG_MASK)) {
                             push_result_token(&parser, rule_id);
