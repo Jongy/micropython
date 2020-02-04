@@ -430,14 +430,29 @@ static void progmem_printf(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int ret = vsnprintf(str, sizeof(str), fmt, ap);
+
     if (ret == sizeof(str)) {
         abort();
     }
     va_end(ap);
 
-    if (ret != write(progmem_fd, str, ret)) {
+    const int write_ret = write(progmem_fd, str, ret);
+    if (write_ret != ret) {
         abort();
     }
+}
+
+static unsigned long emulate_cmp(unsigned long a, unsigned long b) {
+    unsigned long flags;
+
+    asm volatile ("cmp %1, %2\n"
+                  "pushfq\n"
+                  "pop %0\n"
+                  : "=m" (flags)
+                  : "r" (a), "r" (b)
+    );
+
+    return flags;
 }
 
 static unsigned long capstone_reg_to_greg(csh handle, x86_reg reg) {
@@ -454,6 +469,39 @@ static unsigned long capstone_reg_to_greg(csh handle, x86_reg reg) {
     case X86_REG_R8:  return REG_R8;
     default: printf("invalid reg %d %s\n", reg, cs_reg_name(handle, reg)); assert(0);
     }
+}
+
+static void calc_and_verify_addr(csh handle, cs_x86_op *op, cs_insn *n, ucontext_t *u, unsigned long addr) {
+    unsigned long calc_addr;
+
+    assert(op->mem.base != X86_REG_INVALID); // what kind of opcodes are these??
+    calc_addr = u->uc_mcontext.gregs[capstone_reg_to_greg(handle, op->mem.base)];
+    assert(op->mem.index == X86_REG_INVALID);
+    assert(op->mem.scale == 1);
+    calc_addr += op->mem.disp;
+    if (op->mem.base == X86_REG_RIP) {
+        calc_addr += n->size;
+    }
+
+    if (calc_addr != addr) {
+        printf("calc_addr %lx addr %lx\n", calc_addr, addr);
+    }
+
+    assert(calc_addr == addr);
+}
+
+static unsigned long do_load_progmem(cs_x86_op *op, bool is_signed, unsigned long addr) {
+    unsigned long value;
+
+    switch (op->size) {
+    case 1: value = is_signed ? MP_PGM_ACCESS(*(int8_t*)addr): MP_PGM_ACCESS(*(uint8_t*)addr); break;
+    case 2: value = is_signed ? MP_PGM_ACCESS(*(int16_t*)addr): MP_PGM_ACCESS(*(uint16_t*)addr); break;
+    case 4: value = is_signed ? MP_PGM_ACCESS(*(int32_t*)addr): MP_PGM_ACCESS(*(uint32_t*)addr); break;
+    case 8: value = is_signed ? MP_PGM_ACCESS(*(int64_t*)addr): MP_PGM_ACCESS(*(uint64_t*)addr); break;
+    default: assert(!"invalid size");
+    }
+
+    return value;
 }
 
 static void sigsegv_handler(int sig, siginfo_t *si, void *ctx)
@@ -480,7 +528,7 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *ctx)
     cs_insn *n = &insn[0];
     cs_x86 *x86 = &n->detail->x86;
 
-#if 1
+#if 0
     printf("prefix[0] = %x prefix[1] = %x prefix[2] = %x prefix[3] = %x", x86->prefix[0], x86->prefix[1], x86->prefix[2], x86->prefix[3]);
     printf(" ; rex: 0x%x", x86->rex);
     printf(" ; addr_size: %u", x86->addr_size);
@@ -535,34 +583,67 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *ctx)
     printf("0x%"PRIx64":\t%s\t\t%s\n", n->address, n->mnemonic, n->op_str);
 #endif
 
+    switch (n->id) {
+    case X86_INS_CMP:
+        assert(x86->op_count == 2);
+        cs_x86_op *mem;
+        cs_x86_op *reg;
+        bool mem_first;
+        if (x86->operands[1].type == X86_OP_MEM) {
+            assert(x86->operands[0].type == X86_OP_REG);
+            mem_first = false;
+            mem = &x86->operands[1];
+            reg = &x86->operands[0];
+        } else {
+            assert(x86->operands[1].type == X86_OP_REG);
+            mem_first = true;
+            mem = &x86->operands[0];
+            reg = &x86->operands[1];
+        }
+
+        calc_and_verify_addr(handle, mem, n, u, addr);
+        const unsigned long regval = u->uc_mcontext.gregs[capstone_reg_to_greg(handle, reg->reg)];
+
+        const unsigned long val = do_load_progmem(mem, false, addr);
+
+        // printf("val %lx, regval %lx\n", regval, val);
+
+        const unsigned long flags = emulate_cmp(mem_first ? val : regval, mem_first ? regval : val);
+
+        // printf("flags %lx eflags %lx\n", flags, (unsigned long)u->uc_mcontext.gregs[REG_EFL]);
+
+        // write changed bits 0-15
+        u->uc_mcontext.gregs[REG_EFL] = (u->uc_mcontext.gregs[REG_EFL] & ~((unsigned long)0xffff)) |
+            (flags & 0xffff);
+
+        goto out;
+
+    case X86_INS_MOV:
+    case X86_INS_MOVSX:
+    case X86_INS_MOVZX:
+        // handling code below
+        break;
+
+    default:
+        printf("unknown ins id %d\n", n->id);
+        abort();
+    }
+
     // so. operand 2 (source) should match the faulting memory address.
     assert(x86->op_count == 2);
     cs_x86_op *src = &x86->operands[1];
     assert(src->access == CS_AC_READ);
     assert(src->type == X86_OP_MEM);
     assert(src->mem.segment == X86_REG_INVALID); // idc, flat model anyway
+
     // calculate the effective load addr
-
-    unsigned long calc_addr;
-    assert(src->mem.base != X86_REG_INVALID); // what kind of opcodes are these??
-    calc_addr = u->uc_mcontext.gregs[capstone_reg_to_greg(handle, src->mem.base)];
-    assert(src->mem.index == X86_REG_INVALID);
-    assert(src->mem.scale == 1);
-    calc_addr += src->mem.disp;
-    if (src->mem.base == X86_REG_RIP) {
-        calc_addr += n->size;
-    }
-
-    if (calc_addr != addr) {
-        printf("calc_addr %lx addr %lx\n", calc_addr, addr);
-    }
-    assert(calc_addr == addr);
+    calc_and_verify_addr(handle, src, n, u, addr);
 
     // operand 1: dest
     cs_x86_op *dst = &x86->operands[0];
     assert(dst->access == CS_AC_WRITE);
     assert(dst->type == X86_OP_REG);
-    // printf("read from %lx to register %s\n", calc_addr, cs_reg_name(handle, dst->reg));
+    // printf("read from %lx to register %s\n", addr, cs_reg_name(handle, dst->reg));
 
     bool is_signed = false;
     switch (n->id) {
@@ -579,16 +660,9 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *ctx)
         break;
     }
 
-    unsigned long value;
-    switch (dst->size) {
-    case 1: value = is_signed ? MP_PGM_ACCESS(*(int8_t*)calc_addr): MP_PGM_ACCESS(*(uint8_t*)calc_addr); break;
-    case 2: value = is_signed ? MP_PGM_ACCESS(*(int16_t*)calc_addr): MP_PGM_ACCESS(*(uint16_t*)calc_addr); break;
-    case 4: value = is_signed ? MP_PGM_ACCESS(*(int32_t*)calc_addr): MP_PGM_ACCESS(*(uint32_t*)calc_addr); break;
-    case 8: value = is_signed ? MP_PGM_ACCESS(*(int64_t*)calc_addr): MP_PGM_ACCESS(*(uint64_t*)calc_addr); break;
-    default: assert(!"invalid size");
-    }
+    u->uc_mcontext.gregs[capstone_reg_to_greg(handle, dst->reg)] = do_load_progmem(dst, is_signed, addr);
 
-    u->uc_mcontext.gregs[capstone_reg_to_greg(handle, dst->reg)] = value;
+out:
     // skip the faulting instruction
     u->uc_mcontext.gregs[REG_RIP] += n->size;
 
@@ -599,7 +673,11 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *ctx)
 }
 
 static void init_progmem(void) {
-    progmem_fd = open("progmem.log", O_WRONLY);
+    progmem_fd = open("progmem.log", O_CREAT | O_WRONLY | O_APPEND, 0775);
+    if (-1 == progmem_fd) {
+        perror("open progmem.log");
+        exit(1);
+    }
 
     // TODO explain about these 2.
     static char start_xx __attribute__((section("progmem,\"a\",@progbits\n.align 0x1000#"))) = 0x1;
