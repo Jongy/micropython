@@ -28,6 +28,8 @@
 #if MICROPY_UNIX_PROGMEM_TEST
 #define _GNU_SOURCE
 #include <sys/mman.h>
+#include <capstone/capstone.h>
+#include <fcntl.h>
 #endif
 
 #include <stdint.h>
@@ -422,64 +424,228 @@ extern unsigned char __start_progmem;
 extern unsigned char __stop_progmem;
 static unsigned long text;
 
+static int progmem_fd;
+static void progmem_printf(const char *fmt, ...) {
+    char str[1024];
+    va_list ap;
+    va_start(ap, fmt);
+    int ret = vsnprintf(str, sizeof(str), fmt, ap);
+    if (ret == sizeof(str)) {
+        abort();
+    }
+    va_end(ap);
+
+    if (ret != write(progmem_fd, str, ret)) {
+        abort();
+    }
+}
+
+static unsigned long capstone_reg_to_greg(csh handle, x86_reg reg) {
+    switch (reg) {
+    case X86_REG_EAX:
+    case X86_REG_RAX: return REG_RAX;
+    case X86_REG_RBX: return REG_RBX;
+    case X86_REG_RDI: return REG_RDI;
+    case X86_REG_RSI: return REG_RSI;
+    case X86_REG_RCX: return REG_RCX;
+    case X86_REG_EDX:
+    case X86_REG_RDX: return REG_RDX;
+    case X86_REG_RIP: return REG_RIP;
+    case X86_REG_R8:  return REG_R8;
+    default: printf("invalid reg %d %s\n", reg, cs_reg_name(handle, reg)); assert(0);
+    }
+}
+
 static void sigsegv_handler(int sig, siginfo_t *si, void *ctx)
 {
     ucontext_t *u = (ucontext_t *const)ctx;
     const unsigned long addr = (unsigned long)si->si_addr;
 
-    if ((unsigned long)&__start_progmem <= addr && addr < (unsigned long)&__stop_progmem) {
-        unsigned long pc = (unsigned long)u->uc_mcontext.gregs[REG_RIP];
-        printf("progmem access: instruction at %lx accessed %lx\n", pc, addr);
-        printf("progmem access: instruction at %lx accessed %lx\n", pc - text, addr);
-        printf("progmem access: instruction at %lx accessed %lx\n", pc - text + 0x17000, addr);
-
-        // fix it - find out which register had this addr
-        exit(1);
-
-    } else {
+    if (!((unsigned long)&__start_progmem <= addr && addr < (unsigned long)&__stop_progmem)) {
         printf("Another SIGSEGV! (address = %lx) exiting...\n", addr);
         exit(1);
     }
+
+    unsigned long pc = (unsigned long)u->uc_mcontext.gregs[REG_RIP];
+
+    csh handle;
+    cs_insn *insn;
+    size_t count;
+
+    (void)cs_open(CS_ARCH_X86, CS_MODE_64, &handle);
+    cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
+
+    count = cs_disasm(handle, (void*)pc, 15, pc, 0, &insn);
+    assert(count >= 1);
+    cs_insn *n = &insn[0];
+    cs_x86 *x86 = &n->detail->x86;
+
+#if 1
+    printf("prefix[0] = %x prefix[1] = %x prefix[2] = %x prefix[3] = %x", x86->prefix[0], x86->prefix[1], x86->prefix[2], x86->prefix[3]);
+    printf(" ; rex: 0x%x", x86->rex);
+    printf(" ; addr_size: %u", x86->addr_size);
+    printf(" ; modrm: 0x%x", x86->modrm);
+    printf(" ; disp: 0x%" PRIx64 "", x86->disp);
+    printf("\n\n");
+    int i;
+    for (i = 0; i < x86->op_count; i++) {
+        cs_x86_op *op = &(x86->operands[i]);
+
+        switch((int)op->type) {
+            case X86_OP_REG:
+                printf(" ; operands[%u].type: REG = %s", i, cs_reg_name(handle, op->reg));
+                break;
+            case X86_OP_IMM:
+                printf(" ; operands[%u].type: IMM = 0x%" PRIx64 "", i, op->imm);
+                break;
+            case X86_OP_MEM:
+                printf(" ; operands[%u].type: MEM", i);
+                if (op->mem.segment != X86_REG_INVALID)
+                    printf(" ; operands[%u].mem.segment: REG = %s", i, cs_reg_name(handle, op->mem.segment));
+                if (op->mem.base != X86_REG_INVALID)
+                    printf(" ; operands[%u].mem.base: REG = %s", i, cs_reg_name(handle, op->mem.base));
+                if (op->mem.index != X86_REG_INVALID)
+                    printf(" ; operands[%u].mem.index: REG = %s", i, cs_reg_name(handle, op->mem.index));
+                if (op->mem.scale != 1)
+                    printf(" ; operands[%u].mem.scale: %u", i, op->mem.scale);
+                if (op->mem.disp != 0)
+                    printf(" ; operands[%u].mem.disp: 0x%" PRIx64 "", i, op->mem.disp);
+                break;
+            default:
+                break;
+        }
+
+        printf(" ; operands[%u].size: %u", i, op->size);
+
+        switch(op->access) {
+            default:
+                break;
+            case CS_AC_READ:
+                printf(" ; operands[%u].access: READ", i);
+                break;
+            case CS_AC_WRITE:
+                printf(" ; operands[%u].access: WRITE", i);
+                break;
+            case CS_AC_READ | CS_AC_WRITE:
+                printf(" ; operands[%u].access: READ | WRITE", i);
+                break;
+        }
+    }
+    printf("\n\n");
+    printf("0x%"PRIx64":\t%s\t\t%s\n", n->address, n->mnemonic, n->op_str);
+#endif
+
+    // so. operand 2 (source) should match the faulting memory address.
+    assert(x86->op_count == 2);
+    cs_x86_op *src = &x86->operands[1];
+    assert(src->access == CS_AC_READ);
+    assert(src->type == X86_OP_MEM);
+    assert(src->mem.segment == X86_REG_INVALID); // idc, flat model anyway
+    // calculate the effective load addr
+
+    unsigned long calc_addr;
+    assert(src->mem.base != X86_REG_INVALID); // what kind of opcodes are these??
+    calc_addr = u->uc_mcontext.gregs[capstone_reg_to_greg(handle, src->mem.base)];
+    assert(src->mem.index == X86_REG_INVALID);
+    assert(src->mem.scale == 1);
+    calc_addr += src->mem.disp;
+    if (src->mem.base == X86_REG_RIP) {
+        calc_addr += n->size;
+    }
+
+    if (calc_addr != addr) {
+        printf("calc_addr %lx addr %lx\n", calc_addr, addr);
+    }
+    assert(calc_addr == addr);
+
+    // operand 1: dest
+    cs_x86_op *dst = &x86->operands[0];
+    assert(dst->access == CS_AC_WRITE);
+    assert(dst->type == X86_OP_REG);
+    // printf("read from %lx to register %s\n", calc_addr, cs_reg_name(handle, dst->reg));
+
+    bool is_signed = false;
+    switch (n->id) {
+    case X86_INS_MOVZX:
+        is_signed = true;
+        break;
+
+    case X86_INS_MOV:
+    default:
+        assert(dst->size == src->size);
+        break;
+
+    case X86_INS_MOVSX: break;
+        break;
+    }
+
+    unsigned long value;
+    switch (dst->size) {
+    case 1: value = is_signed ? MP_PGM_ACCESS(*(int8_t*)calc_addr): MP_PGM_ACCESS(*(uint8_t*)calc_addr); break;
+    case 2: value = is_signed ? MP_PGM_ACCESS(*(int16_t*)calc_addr): MP_PGM_ACCESS(*(uint16_t*)calc_addr); break;
+    case 4: value = is_signed ? MP_PGM_ACCESS(*(int32_t*)calc_addr): MP_PGM_ACCESS(*(uint32_t*)calc_addr); break;
+    case 8: value = is_signed ? MP_PGM_ACCESS(*(int64_t*)calc_addr): MP_PGM_ACCESS(*(uint64_t*)calc_addr); break;
+    default: assert(!"invalid size");
+    }
+
+    u->uc_mcontext.gregs[capstone_reg_to_greg(handle, dst->reg)] = value;
+    // skip the faulting instruction
+    u->uc_mcontext.gregs[REG_RIP] += n->size;
+
+    cs_close(&handle);
+    progmem_printf("progmem access: instruction at %lx accessed %lx\n", pc, addr);
+    // progmem_printf("progmem access: instruction at %lx accessed %lx\n", pc - text, addr);
+    // progmem_printf("progmem access: instruction at %lx accessed %lx\n", pc - text + 0x17000, addr);
 }
 
 static void init_progmem(void) {
+    progmem_fd = open("progmem.log", O_WRONLY);
+
     // TODO explain about these 2.
     static char start_xx __attribute__((section("progmem,\"a\",@progbits\n.align 0x1000#"))) = 0x1;
     static char end_xx __attribute__((section(".eh_frame_hdr.shit,\"a\",@progbits\n.align 0x1000#"))) = 0x1;
-    printf("ftr %p %p\n", &start_xx, &end_xx);
+    progmem_printf("ftr %p %p\n", &start_xx, &end_xx);
 
     // remap the progmem area so memory accesses to MP_PROGMEM without MP_PGM_ACCESS
     // fail.
     unsigned char *spgm = &__start_progmem;
     unsigned char *epgm = &__stop_progmem;
 
-    printf("remapping progmem %p - %p size %lu\n", spgm, epgm, epgm - spgm);
+    progmem_printf("remapping progmem %p - %p size %lu\n", spgm, epgm, epgm - spgm);
 
     unsigned long pgm_size = (unsigned long)epgm - (unsigned long)spgm;
     unsigned long new_pgm = (unsigned long)spgm + PROGMEM_OFFSET;
     if ((unsigned long)spgm & 0xfff) {
-        printf("not aligned to page size!\n");
+        progmem_printf("not aligned to page size!\n");
         exit(1);
     }
     // TODO pgm_size is not page aligned, but next section really does start on the next page
     // multiply. verify it somehow.
 
     // move progmem to its new location
-    printf("new progmem is at %p\n", (void*)new_pgm);
-    void *res = mremap(spgm, pgm_size, pgm_size, MREMAP_MAYMOVE|MREMAP_FIXED, new_pgm);
+    progmem_printf("new progmem is at %p\n", (void*)new_pgm);
+    // not using mremap so older progmem remains in place (for debugging progmem copies)
+    void *res = mmap((void*)new_pgm, pgm_size, PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
     if (res == MAP_FAILED) {
-        perror("mremap");
+        perror("mmap new progmem");
         exit(1);
     }
 
-    // make accesses to the old location fail violently.
-    // res = mmap(spgm, pgm_size, PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANON, -1, 0);
-    // if (res == MAP_FAILED) {
-    //     perror("mmap");
-    //     exit(1);
-    // }
+    memcpy(res, spgm, pgm_size);
 
-    printf("progmem remapped!\n");
+    // now make it read-only, as it should be.
+    if (0 != mprotect(res, pgm_size, PROT_READ)) {
+        perror("mprotect new pgmem");
+        exit(1);
+    }
+
+    // and make accesses to the old location fail violently.
+    if (0 != mprotect(spgm, pgm_size, PROT_NONE)) {
+        perror("mprotect old pgmem");
+        exit(1);
+    }
+
+    progmem_printf("progmem remapped!\n");
 
     struct sigaction sa = {
         .sa_flags = SA_SIGINFO,
@@ -501,7 +667,7 @@ static void init_progmem(void) {
 
         if (strstr(line, "r-xp")) {
             *strchr(line, '-') = '\0';
-            printf("text %s\n", line);
+            progmem_printf("text %s\n", line);
             text = strtoul(line, NULL, 16) + 0x850;
             break;
         }

@@ -815,6 +815,7 @@ STATIC void push_result_rule(parser_t *parser, size_t src_line, uint8_t rule_id,
     push_result_node(parser, (mp_parse_node_t)pn);
 }
 
+#include <signal.h>
 mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
 
     // initialise parser and allocate memory for its stacks
@@ -883,8 +884,6 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
                 }
                 for (; i < n; ++i) {
                     uint16_t kind = MP_PGM_ACCESS(rule_arg[i]) & RULE_ARG_KIND_MASK;
-                    printf("kind %u\n", kind);
-                    printf("real kind %u\n", rule_arg[i] & RULE_ARG_KIND_MASK);
                     if (kind == RULE_ARG_TOK) {
                         if (lex->tok_kind == (MP_PGM_ACCESS(rule_arg[i]) & RULE_ARG_ARG_MASK)) {
                             push_result_token(&parser, rule_id);
