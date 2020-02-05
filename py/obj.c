@@ -42,7 +42,7 @@ const mp_obj_type_t *mp_obj_get_type(mp_const_obj_t o_in) {
 
     if (mp_obj_is_obj(o_in)) {
         const mp_obj_base_t *o = MP_OBJ_TO_PTR(o_in);
-        return o->type;
+        return MP_PGM_ACCESS(o->type);
     } else {
         static const mp_obj_type_t *const types[] = {
             NULL, &mp_type_int, &mp_type_str, &mp_type_int,
@@ -109,10 +109,10 @@ void mp_obj_print_helper(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t
     }
 #endif
     const mp_obj_type_t *type = mp_obj_get_type(o_in);
-    if (type->print != NULL) {
-        type->print((mp_print_t*)print, o_in, kind);
+    if (MP_PGM_ACCESS(type->print) != NULL) {
+        MP_PGM_ACCESS(type->print)((mp_print_t*)print, o_in, kind);
     } else {
-        mp_printf(print, "<%q>", type->name);
+        mp_printf(print, "<%q>", MP_PGM_ACCESS(type->name));
     }
 }
 
@@ -182,7 +182,7 @@ bool mp_obj_is_true(mp_obj_t arg) {
 }
 
 bool mp_obj_is_callable(mp_obj_t o_in) {
-    const mp_call_fun_t call = mp_obj_get_type(o_in)->call;
+    const mp_call_fun_t call = MP_PGM_ACCESS(mp_obj_get_type(o_in)->call);
     if (call != mp_obj_instance_call) {
         return call != NULL;
     }
@@ -253,8 +253,8 @@ bool mp_obj_equal(mp_obj_t o1, mp_obj_t o2) {
 
     // generic type, call binary_op(MP_BINARY_OP_EQUAL)
     const mp_obj_type_t *type = mp_obj_get_type(o1);
-    if (type->binary_op != NULL) {
-        mp_obj_t r = type->binary_op(MP_BINARY_OP_EQUAL, o1, o2);
+    if (MP_PGM_ACCESS(type->binary_op) != NULL) {
+        mp_obj_t r = MP_PGM_ACCESS(type->binary_op)(MP_BINARY_OP_EQUAL, o1, o2);
         if (r != MP_OBJ_NULL) {
             return r == mp_const_true ? true : false;
         }
@@ -495,8 +495,8 @@ mp_obj_t mp_obj_len_maybe(mp_obj_t o_in) {
         return MP_OBJ_NEW_SMALL_INT(l);
     } else {
         const mp_obj_type_t *type = mp_obj_get_type(o_in);
-        if (type->unary_op != NULL) {
-            return type->unary_op(MP_UNARY_OP_LEN, o_in);
+        if (MP_PGM_ACCESS(type->unary_op) != NULL) {
+            return MP_PGM_ACCESS(type->unary_op)(MP_UNARY_OP_LEN, o_in);
         } else {
             return MP_OBJ_NULL;
         }
@@ -550,10 +550,10 @@ mp_obj_t mp_identity_getiter(mp_obj_t self, mp_obj_iter_buf_t *iter_buf) {
 
 bool mp_get_buffer(mp_obj_t obj, mp_buffer_info_t *bufinfo, mp_uint_t flags) {
     const mp_obj_type_t *type = mp_obj_get_type(obj);
-    if (type->buffer_p.get_buffer == NULL) {
+    if (MP_PGM_ACCESS(type->buffer_p.get_buffer) == NULL) {
         return false;
     }
-    int ret = type->buffer_p.get_buffer(obj, bufinfo, flags);
+    int ret = MP_PGM_ACCESS(type->buffer_p.get_buffer)(obj, bufinfo, flags);
     if (ret != 0) {
         return false;
     }

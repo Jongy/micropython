@@ -169,7 +169,7 @@ mp_map_elem_t *mp_map_lookup(mp_map_t *map, mp_obj_t index, mp_map_lookup_kind_t
     // if the map is an ordered array then we must do a brute force linear search
     if (map->is_ordered) {
         for (mp_map_elem_t *elem = &map->table[0], *top = &map->table[map->used]; elem < top; elem++) {
-            if (elem->key == index || (!compare_only_ptrs && mp_obj_equal(elem->key, index))) {
+            if (MP_PGM_ACCESS(elem->key) == index || (!compare_only_ptrs && mp_obj_equal(MP_PGM_ACCESS(elem->key), index))) {
                 #if MICROPY_PY_COLLECTIONS_ORDEREDDICT
                 if (MP_UNLIKELY(lookup_kind == MP_MAP_LOOKUP_REMOVE_IF_FOUND)) {
                     // remove the found element by moving the rest of the array down

@@ -67,7 +67,7 @@ STATIC mp_obj_t fun_builtin_1_call(mp_obj_t self_in, size_t n_args, size_t n_kw,
     assert(mp_obj_is_type(self_in, &mp_type_fun_builtin_1));
     mp_obj_fun_builtin_fixed_t *self = MP_OBJ_TO_PTR(self_in);
     mp_arg_check_num(n_args, n_kw, 1, 1, false);
-    return self->fun._1(args[0]);
+    return MP_PGM_ACCESS(self->fun._1)(args[0]);
 }
 
 const mp_obj_type_t mp_type_fun_builtin_1 MP_PROGMEM = {
@@ -81,7 +81,7 @@ STATIC mp_obj_t fun_builtin_2_call(mp_obj_t self_in, size_t n_args, size_t n_kw,
     assert(mp_obj_is_type(self_in, &mp_type_fun_builtin_2));
     mp_obj_fun_builtin_fixed_t *self = MP_OBJ_TO_PTR(self_in);
     mp_arg_check_num(n_args, n_kw, 2, 2, false);
-    return self->fun._2(args[0], args[1]);
+    return MP_PGM_ACCESS(self->fun._2)(args[0], args[1]);
 }
 
 const mp_obj_type_t mp_type_fun_builtin_2 MP_PROGMEM = {
@@ -110,21 +110,21 @@ STATIC mp_obj_t fun_builtin_var_call(mp_obj_t self_in, size_t n_args, size_t n_k
     mp_obj_fun_builtin_var_t *self = MP_OBJ_TO_PTR(self_in);
 
     // check number of arguments
-    mp_arg_check_num_sig(n_args, n_kw, self->sig);
+    mp_arg_check_num_sig(n_args, n_kw, MP_PGM_ACCESS(self->sig));
 
-    if (self->sig & 1) {
+    if (MP_PGM_ACCESS(self->sig) & 1) {
         // function allows keywords
 
         // we create a map directly from the given args array
         mp_map_t kw_args;
         mp_map_init_fixed_table(&kw_args, n_kw, args + n_args);
 
-        return self->fun.kw(n_args, args, &kw_args);
+        return MP_PGM_ACCESS(self->fun.kw)(n_args, args, &kw_args);
 
     } else {
         // function takes a variable number of arguments, but no keywords
 
-        return self->fun.var(n_args, args);
+        return MP_PGM_ACCESS(self->fun.var)(n_args, args);
     }
 }
 

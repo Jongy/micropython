@@ -189,7 +189,7 @@ mp_obj_t mp_load_global(qstr qst) {
             }
         }
     }
-    return elem->value;
+    return MP_PGM_ACCESS(elem->value);
 }
 
 mp_obj_t mp_load_build_class(void) {
@@ -560,8 +560,8 @@ mp_obj_t mp_binary_op(mp_binary_op_t op, mp_obj_t lhs, mp_obj_t rhs) {
     const mp_obj_type_t *type;
 generic_binary_op:
     type = mp_obj_get_type(lhs);
-    if (type->binary_op != NULL) {
-        mp_obj_t result = type->binary_op(op, lhs, rhs);
+    if (MP_PGM_ACCESS(type->binary_op) != NULL) {
+        mp_obj_t result = MP_PGM_ACCESS(type->binary_op)(op, lhs, rhs);
         if (result != MP_OBJ_NULL) {
             return result;
         }
@@ -636,8 +636,8 @@ mp_obj_t mp_call_function_n_kw(mp_obj_t fun_in, size_t n_args, size_t n_kw, cons
     const mp_obj_type_t *type = mp_obj_get_type(fun_in);
 
     // do the call
-    if (type->call != NULL) {
-        return type->call(fun_in, n_args, n_kw, args);
+    if (MP_PGM_ACCESS(type->call) != NULL) {
+        return MP_PGM_ACCESS(type->call)(fun_in, n_args, n_kw, args);
     }
 
     if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
@@ -1030,7 +1030,7 @@ void mp_convert_member_lookup(mp_obj_t self, const mp_obj_type_t *type, mp_obj_t
                 || ((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type->name == MP_QSTR_generator))) {
         // only functions, closures and generators objects can be bound to self
         #if MICROPY_BUILTIN_METHOD_CHECK_SELF_ARG
-        const mp_obj_type_t *m_type = ((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type;
+        const mp_obj_type_t *m_type = MP_PGM_ACCESS(((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type);
         if (self == MP_OBJ_NULL
             && (m_type == &mp_type_fun_builtin_0
                 || m_type == &mp_type_fun_builtin_1
@@ -1077,15 +1077,15 @@ void mp_load_method_maybe(mp_obj_t obj, qstr attr, mp_obj_t *dest) {
         dest[0] = MP_OBJ_FROM_PTR(&mp_builtin_next_obj);
         dest[1] = obj;
 
-    } else if (type->attr != NULL) {
+    } else if (MP_PGM_ACCESS(type->attr) != NULL) {
         // this type can do its own load, so call it
-        type->attr(obj, attr, dest);
+        MP_PGM_ACCESS(type->attr)(obj, attr, dest);
 
-    } else if (type->locals_dict != NULL) {
+    } else if (MP_PGM_ACCESS(type->locals_dict) != NULL) {
         // generic method lookup
         // this is a lookup in the object (ie not class or type)
-        assert(type->locals_dict->base.type == &mp_type_dict); // MicroPython restriction, for now
-        mp_map_t *locals_map = &type->locals_dict->map;
+        assert(MP_PGM_ACCESS(MP_PGM_ACCESS(type->locals_dict)->base.type) == &mp_type_dict); // MicroPython restriction, for now
+        mp_map_t *locals_map = &MP_PGM_ACCESS(type->locals_dict)->map;
         mp_map_elem_t *elem = mp_map_lookup(locals_map, MP_OBJ_NEW_QSTR(attr), MP_MAP_LOOKUP);
         if (elem != NULL) {
             mp_convert_member_lookup(obj, type, elem->value, dest);
@@ -1159,18 +1159,18 @@ mp_obj_t mp_getiter(mp_obj_t o_in, mp_obj_iter_buf_t *iter_buf) {
 
     // Check for native getiter which is the identity.  We handle this case explicitly
     // so we don't unnecessarily allocate any RAM for the iter_buf, which won't be used.
-    if (type->getiter == mp_identity_getiter) {
+    if (MP_PGM_ACCESS(type->getiter) == mp_identity_getiter) {
         return o_in;
     }
 
     // check for native getiter (corresponds to __iter__)
-    if (type->getiter != NULL) {
-        if (iter_buf == NULL && type->getiter != mp_obj_instance_getiter) {
+    if (MP_PGM_ACCESS(type->getiter) != NULL) {
+        if (iter_buf == NULL && MP_PGM_ACCESS(type->getiter) != mp_obj_instance_getiter) {
             // if caller did not provide a buffer then allocate one on the heap
             // mp_obj_instance_getiter is special, it will allocate only if needed
             iter_buf = m_new_obj(mp_obj_iter_buf_t);
         }
-        mp_obj_t iter = type->getiter(o_in, iter_buf);
+        mp_obj_t iter = MP_PGM_ACCESS(type->getiter)(o_in, iter_buf);
         if (iter != MP_OBJ_NULL) {
             return iter;
         }
@@ -1226,8 +1226,8 @@ mp_obj_t mp_iternext_allow_raise(mp_obj_t o_in) {
 mp_obj_t mp_iternext(mp_obj_t o_in) {
     MP_STACK_CHECK(); // enumerate, filter, map and zip can recursively call mp_iternext
     const mp_obj_type_t *type = mp_obj_get_type(o_in);
-    if (type->iternext != NULL) {
-        return type->iternext(o_in);
+    if (MP_PGM_ACCESS(type->iternext) != NULL) {
+        return MP_PGM_ACCESS(type->iternext)(o_in);
     } else {
         // check for __next__ method
         mp_obj_t dest[2];

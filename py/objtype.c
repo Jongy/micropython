@@ -991,7 +991,7 @@ STATIC mp_obj_t type_call(mp_obj_t self_in, size_t n_args, size_t n_kw, const mp
 
     mp_obj_type_t *self = MP_OBJ_TO_PTR(self_in);
 
-    if (self->make_new == NULL) {
+    if (MP_PGM_ACCESS(self->make_new) == NULL) {
         if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
             mp_raise_TypeError("cannot create instance");
         } else {
@@ -1001,7 +1001,7 @@ STATIC mp_obj_t type_call(mp_obj_t self_in, size_t n_args, size_t n_kw, const mp
     }
 
     // make new instance
-    mp_obj_t o = self->make_new(self, n_args, n_kw, args);
+    mp_obj_t o = MP_PGM_ACCESS(self->make_new)(self, n_args, n_kw, args);
 
     // return new instance
     return o;
@@ -1329,11 +1329,11 @@ bool mp_obj_is_subclass_fast(mp_const_obj_t object, mp_const_obj_t classinfo) {
 
         const mp_obj_type_t *self = MP_OBJ_TO_PTR(object);
 
-        if (self->parent == NULL) {
+        if (MP_PGM_ACCESS(self->parent) == NULL) {
             // type has no parents
             return false;
         #if MICROPY_MULTIPLE_INHERITANCE
-        } else if (((mp_obj_base_t*)self->parent)->type == &mp_type_tuple) {
+        } else if (MP_PGM_ACCESS(((mp_obj_base_t*)MP_PGM_ACCESS(self->parent))->type) == &mp_type_tuple) {
             // get the base objects (they should be type objects)
             const mp_obj_tuple_t *parent_tuple = self->parent;
             const mp_obj_t *item = parent_tuple->items;
@@ -1351,7 +1351,7 @@ bool mp_obj_is_subclass_fast(mp_const_obj_t object, mp_const_obj_t classinfo) {
         #endif
         } else {
             // type has 1 parent
-            object = MP_OBJ_FROM_PTR(self->parent);
+            object = MP_OBJ_FROM_PTR(MP_PGM_ACCESS(self->parent));
         }
     }
 }

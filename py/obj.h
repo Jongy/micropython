@@ -664,7 +664,7 @@ extern const struct _mp_obj_exception_t mp_const_GeneratorExit_obj;
 // check for more specific object types.
 // Note: these are kept as macros because inline functions sometimes use much
 // more code space than the equivalent macros, depending on the compiler.
-#define mp_obj_is_type(o, t) (mp_obj_is_obj(o) && (((mp_obj_base_t*)MP_OBJ_TO_PTR(o))->type == (t))) // this does not work for checking int, str or fun; use below macros for that
+#define mp_obj_is_type(o, t) (mp_obj_is_obj(o) && (MP_PGM_ACCESS(((mp_obj_base_t*)MP_OBJ_TO_PTR(o))->type) == (t))) // this does not work for checking int, str or fun; use below macros for that
 #if MICROPY_OBJ_IMMEDIATE_OBJS
 // bool's are immediates, not real objects, so test for the 2 possible values.
 #define mp_obj_is_bool(o) ((o) == mp_const_false || (o) == mp_const_true)
@@ -674,7 +674,7 @@ extern const struct _mp_obj_exception_t mp_const_GeneratorExit_obj;
 #define mp_obj_is_int(o) (mp_obj_is_small_int(o) || mp_obj_is_type(o, &mp_type_int))
 #define mp_obj_is_str(o) (mp_obj_is_qstr(o) || mp_obj_is_type(o, &mp_type_str))
 #define mp_obj_is_str_or_bytes(o) (mp_obj_is_qstr(o) || (mp_obj_is_obj(o) && ((mp_obj_base_t*)MP_OBJ_TO_PTR(o))->type->binary_op == mp_obj_str_binary_op))
-#define mp_obj_is_fun(o) (mp_obj_is_obj(o) && (((mp_obj_base_t*)MP_OBJ_TO_PTR(o))->type->name == MP_QSTR_function))
+#define mp_obj_is_fun(o) (mp_obj_is_obj(o) && (MP_PGM_ACCESS(MP_PGM_ACCESS(((mp_obj_base_t*)MP_OBJ_TO_PTR(o))->type)->name) == MP_QSTR_function))
 
 mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals_dict);
 static inline mp_obj_t mp_obj_new_bool(mp_int_t x) { return x ? mp_const_true : mp_const_false; }
@@ -758,7 +758,7 @@ mp_int_t mp_obj_int_get_checked(mp_const_obj_t self_in);
 mp_uint_t mp_obj_int_get_uint_checked(mp_const_obj_t self_in);
 
 // exception
-#define mp_obj_is_native_exception_instance(o) (mp_obj_get_type(o)->make_new == mp_obj_exception_make_new)
+#define mp_obj_is_native_exception_instance(o) (MP_PGM_ACCESS(mp_obj_get_type(o)->make_new) == mp_obj_exception_make_new)
 bool mp_obj_is_exception_type(mp_obj_t self_in);
 bool mp_obj_is_exception_instance(mp_obj_t self_in);
 bool mp_obj_exception_match(mp_obj_t exc, mp_const_obj_t exc_type);
