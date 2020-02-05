@@ -474,12 +474,14 @@ static unsigned long capstone_reg_to_greg(csh handle, x86_reg reg) {
 static void calc_and_verify_addr(csh handle, cs_x86_op *op, cs_insn *n, ucontext_t *u, unsigned long addr) {
     unsigned long calc_addr;
 
+    assert(op->type == X86_OP_MEM);
     assert(op->mem.base != X86_REG_INVALID); // what kind of opcodes are these??
     calc_addr = u->uc_mcontext.gregs[capstone_reg_to_greg(handle, op->mem.base)];
     if (op->mem.index != X86_REG_INVALID) {
-        calc_addr += u->uc_mcontext.gregs[capstone_reg_to_greg(handle, op->mem.index)];
+        calc_addr += u->uc_mcontext.gregs[capstone_reg_to_greg(handle, op->mem.index)]
+            * op->mem.scale;
     }
-    assert(op->mem.scale == 1);
+
     calc_addr += op->mem.disp;
     if (op->mem.base == X86_REG_RIP) {
         calc_addr += n->size;
