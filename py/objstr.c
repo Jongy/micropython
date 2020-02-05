@@ -1917,7 +1917,7 @@ mp_int_t mp_obj_str_get_buffer(mp_obj_t self_in, mp_buffer_info_t *bufinfo, mp_u
     }
 }
 
-STATIC const mp_rom_map_elem_t str8_locals_dict_table[] = {
+STATIC const mp_rom_map_elem_t str8_locals_dict_table[] MP_PROGMEM = {
 #if MICROPY_CPYTHON_COMPAT
     { MP_ROM_QSTR(MP_QSTR_decode), MP_ROM_PTR(&bytes_decode_obj) },
     #if !MICROPY_PY_BUILTINS_STR_UNICODE

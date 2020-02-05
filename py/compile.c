@@ -2735,7 +2735,7 @@ STATIC void compile_const_object(compiler_t *comp, mp_parse_node_struct_t *pns) 
 }
 
 typedef void (*compile_function_t)(compiler_t*, mp_parse_node_struct_t*);
-STATIC const compile_function_t compile_function[] = {
+STATIC const compile_function_t compile_function[] MP_PROGMEM = {
 // only define rules with a compile function
 #define c(f) compile_##f
 #define DEF_RULE(rule, comp, kind, ...) comp,
