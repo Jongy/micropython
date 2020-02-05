@@ -234,8 +234,8 @@ nanbox:
 freedos:
 	$(MAKE) VARIANT=freedos
 
-progmem_test:
-	$(MAKE) VARIANT=progmem_test
+progmem:
+	$(MAKE) VARIANT=progmem
 
 coverage:
 	$(MAKE) VARIANT=coverage

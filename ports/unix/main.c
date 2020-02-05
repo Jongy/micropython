@@ -509,7 +509,7 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *ctx)
     ucontext_t *u = (ucontext_t *const)ctx;
     const unsigned long addr = (unsigned long)si->si_addr;
 
-    if (!((unsigned long)&__start_progmem <= addr && addr < (unsigned long)&__stop_progmem)) {
+    if (!in_pgmem((void*)addr)) {
         printf("Another SIGSEGV! (address = %lx) exiting...\n", addr);
         exit(1);
     }
@@ -525,6 +525,7 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *ctx)
 
     count = cs_disasm(handle, (void*)pc, 15, pc, 0, &insn);
     assert(count >= 1);
+    (void)count;
     cs_insn *n = &insn[0];
     cs_x86 *x86 = &n->detail->x86;
 
@@ -667,13 +668,13 @@ out:
     u->uc_mcontext.gregs[REG_RIP] += n->size;
 
     cs_close(&handle);
-    progmem_printf("progmem access: instruction at %lx accessed %lx\n", pc, addr);
+    progmem_printf("pg %lx %lx\n", pc, addr);
     // progmem_printf("progmem access: instruction at %lx accessed %lx\n", pc - text, addr);
     // progmem_printf("progmem access: instruction at %lx accessed %lx\n", pc - text + 0x17000, addr);
 }
 
 static void init_progmem(void) {
-    progmem_fd = open("progmem.log", O_CREAT | O_WRONLY | O_APPEND, 0775);
+    progmem_fd = open("progmem.log", O_CREAT | O_WRONLY | O_APPEND, 0664);
     if (-1 == progmem_fd) {
         perror("open progmem.log");
         exit(1);

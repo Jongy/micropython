@@ -69,10 +69,29 @@ static inline int64_t load_pgmem_s64(const void *addr) {
     return *(const int64_t*)translate_progmem_address(addr);
 }
 
+static inline size_t load_pgmem_ptr(const void *addr) {
+#ifdef __x86_64__
+    return load_pgmem_u64(addr);
+#elif defined(__i386__)
+    return load_pgmem_u32(addr);
+#else
+#error "arch"
+#endif
+}
+
+static inline int in_pgmem(const void *addr) {
+    extern unsigned char __start_progmem;
+    extern unsigned char __stop_progmem;
+
+    unsigned long a = (unsigned long)addr;
+    return (unsigned long)&__start_progmem <= a && a < (unsigned long)&__stop_progmem;
+}
+
 // __builtin_types_compatible_p itself is not enough. without __builtin_choose_expr, the entire expression
 // has a possibly different type (different from the return value of load_pgmem_*) and it affects the code
 // using this macro.
 #define MP_PGM_ACCESS(x) \
+    (!in_pgmem(&(x)) ? (x) : \
     __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), uint8_t),  load_pgmem_u8(&(x)),  \
     __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), uint16_t), load_pgmem_u16(&(x)), \
     __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), uint32_t), load_pgmem_u32(&(x)), \
@@ -81,4 +100,5 @@ static inline int64_t load_pgmem_s64(const void *addr) {
     __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), int16_t),  load_pgmem_s16(&(x)), \
     __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), int32_t),  load_pgmem_s32(&(x)), \
     __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), int64_t),  load_pgmem_s64(&(x)), \
-    (void)0))))))))
+    __builtin_choose_expr(sizeof(x) == sizeof(void *),            (typeof(x))load_pgmem_ptr(&(x)), \
+    (void)0))))))))))
