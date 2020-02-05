@@ -13,7 +13,7 @@
 
 static char *stack_top;
 #if MICROPY_ENABLE_GC
-static char heap[100];
+static char heap[300];
 #endif
 
 void uart_init(void);
