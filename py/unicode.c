@@ -115,11 +115,11 @@ size_t utf8_charlen(const byte *str, size_t len) {
 
 // Be aware: These unichar_is* functions are actually ASCII-only!
 bool unichar_isspace(unichar c) {
-    return c < 128 && (attr[c] & FL_SPACE) != 0;
+    return c < 128 && (MP_PGM_ACCESS(attr[c]) & FL_SPACE) != 0;
 }
 
 bool unichar_isalpha(unichar c) {
-    return c < 128 && (attr[c] & FL_ALPHA) != 0;
+    return c < 128 && (MP_PGM_ACCESS(attr[c]) & FL_ALPHA) != 0;
 }
 
 /* unused
@@ -129,7 +129,7 @@ bool unichar_isprint(unichar c) {
 */
 
 bool unichar_isdigit(unichar c) {
-    return c < 128 && (attr[c] & FL_DIGIT) != 0;
+    return c < 128 && (MP_PGM_ACCESS(attr[c]) & FL_DIGIT) != 0;
 }
 
 bool unichar_isxdigit(unichar c) {

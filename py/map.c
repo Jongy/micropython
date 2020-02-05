@@ -64,8 +64,8 @@ STATIC const uint16_t hash_allocation_sizes[] MP_PROGMEM = {
 
 STATIC size_t get_hash_alloc_greater_or_equal_to(size_t x) {
     for (size_t i = 0; i < MP_ARRAY_SIZE(hash_allocation_sizes); i++) {
-        if (hash_allocation_sizes[i] >= x) {
-            return hash_allocation_sizes[i];
+        if (MP_PGM_ACCESS(hash_allocation_sizes[i]) >= x) {
+            return MP_PGM_ACCESS(hash_allocation_sizes[i]);
         }
     }
     // ran out of primes in the table!

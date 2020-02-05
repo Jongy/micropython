@@ -2798,7 +2798,7 @@ STATIC void compile_node(compiler_t *comp, mp_parse_node_t pn) {
         mp_parse_node_struct_t *pns = (mp_parse_node_struct_t*)pn;
         EMIT_ARG(set_source_line, pns->source_line);
         assert(MP_PARSE_NODE_STRUCT_KIND(pns) <= PN_const_object);
-        compile_function_t f = compile_function[MP_PARSE_NODE_STRUCT_KIND(pns)];
+        compile_function_t f = MP_PGM_ACCESS(compile_function[MP_PARSE_NODE_STRUCT_KIND(pns)]);
         f(comp, pns);
     }
 }
