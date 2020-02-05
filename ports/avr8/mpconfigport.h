@@ -106,11 +106,21 @@ static inline int32_t load_pgmem_s32(const void *addr) {
     return (int32_t)pgm_read_dword(addr);
 }
 
+static inline size_t load_pgmem_ptr(const void *addr) {
+    return load_pgmem_u16(addr);
+}
+
+static inline int in_pgmem(const void *addr) {
+    return (unsigned)addr > 0x2000; // ram size?
+}
+
 #define MP_PGM_ACCESS(x)                                                       \
-    __builtin_types_compatible_p(typeof(x), uint8_t)  ? load_pgmem_u8(&(x))  : \
-    __builtin_types_compatible_p(typeof(x), uint16_t) ? load_pgmem_u16(&(x)) : \
-    __builtin_types_compatible_p(typeof(x), uint32_t) ? load_pgmem_u32(&(x)) : \
-    __builtin_types_compatible_p(typeof(x), int8_t)   ? load_pgmem_s8(&(x))  : \
-    __builtin_types_compatible_p(typeof(x), int16_t)  ? load_pgmem_s16(&(x)) : \
-    __builtin_types_compatible_p(typeof(x), int32_t)  ? load_pgmem_s32(&(x)) : \
-    0  // just crash immediately...
+    (!in_pgmem(&(x)) ? (x) :                                                   \
+    __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), uint8_t),  load_pgmem_u8(&(x)),  \
+    __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), uint16_t), load_pgmem_u16(&(x)), \
+    __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), uint32_t), load_pgmem_u32(&(x)), \
+    __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), int8_t),   load_pgmem_s8(&(x)),  \
+    __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), int16_t),  load_pgmem_s16(&(x)), \
+    __builtin_choose_expr(__builtin_types_compatible_p(typeof(x), int32_t),  load_pgmem_s32(&(x)), \
+    __builtin_choose_expr(sizeof(x) == sizeof(void *), (typeof(x))load_pgmem_ptr(&(x)), \
+    (void)0))))))))
