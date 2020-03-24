@@ -536,7 +536,7 @@ STATIC mp_obj_t dict_getiter(mp_obj_t self_in, mp_obj_iter_buf_t *iter_buf) {
 /******************************************************************************/
 /* dict constructors & public C API                                           */
 
-STATIC const mp_rom_map_elem_t dict_locals_dict_table[] = {
+STATIC const mp_rom_map_elem_t dict_locals_dict_table[] MP_PROGMEM = {
     { MP_ROM_QSTR(MP_QSTR_clear), MP_ROM_PTR(&dict_clear_obj) },
     { MP_ROM_QSTR(MP_QSTR_copy), MP_ROM_PTR(&dict_copy_obj) },
     #if MICROPY_PY_BUILTINS_DICT_FROMKEYS

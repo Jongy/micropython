@@ -274,8 +274,8 @@ mp_obj_t mp_unary_op(mp_unary_op_t op, mp_obj_t arg) {
         return MP_OBJ_NEW_SMALL_INT(h);
     } else {
         const mp_obj_type_t *type = mp_obj_get_type(arg);
-        if (type->unary_op != NULL) {
-            mp_obj_t result = type->unary_op(op, arg);
+        if (MP_PGM_ACCESS(type->unary_op) != NULL) {
+            mp_obj_t result = MP_PGM_ACCESS(type->unary_op)(op, arg);
             if (result != MP_OBJ_NULL) {
                 return result;
             }
@@ -603,7 +603,7 @@ unsupported_op:
     } else {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_TypeError,
             "unsupported types for %q: '%s', '%s'",
-            mp_binary_op_method_name[op], mp_obj_get_type_str(lhs), mp_obj_get_type_str(rhs)));
+            MP_PGM_ACCESS(mp_binary_op_method_name[op]), mp_obj_get_type_str(lhs), mp_obj_get_type_str(rhs)));
     }
 
 zero_division:
@@ -981,14 +981,14 @@ STATIC mp_obj_t checked_fun_call(mp_obj_t self_in, size_t n_args, size_t n_kw, c
                 mp_raise_TypeError("argument has wrong type");
             } else {
                 nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_TypeError,
-                    "argument should be a '%q' not a '%q'", self->type->name, arg0_type->name));
+                    "argument should be a '%q' not a '%q'", MP_PGM_ACCESS(self->type->name), MP_PGM_ACCESS(arg0_type->name)));
             }
         }
     }
     return mp_call_function_n_kw(self->fun, n_args, n_kw, args);
 }
 
-STATIC const mp_obj_type_t mp_type_checked_fun = {
+STATIC const mp_obj_type_t mp_type_checked_fun MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = checked_fun_call,
@@ -1011,7 +1011,7 @@ STATIC mp_obj_t mp_obj_new_checked_fun(const mp_obj_type_t *type, mp_obj_t fun) 
 void mp_convert_member_lookup(mp_obj_t self, const mp_obj_type_t *type, mp_obj_t member, mp_obj_t *dest) {
     if (mp_obj_is_type(member, &mp_type_staticmethod)) {
         // return just the function
-        dest[0] = ((mp_obj_static_class_method_t*)MP_OBJ_TO_PTR(member))->fun;
+        dest[0] = MP_PGM_ACCESS(((mp_obj_static_class_method_t*)MP_OBJ_TO_PTR(member))->fun);
     } else if (mp_obj_is_type(member, &mp_type_classmethod)) {
         // return a bound method, with self being the type of this object
         // this type should be the type of the original instance, not the base
@@ -1019,15 +1019,15 @@ void mp_convert_member_lookup(mp_obj_t self, const mp_obj_type_t *type, mp_obj_t
         if (self != MP_OBJ_NULL) {
             type = mp_obj_get_type(self);
         }
-        dest[0] = ((mp_obj_static_class_method_t*)MP_OBJ_TO_PTR(member))->fun;
+        dest[0] = MP_PGM_ACCESS(((mp_obj_static_class_method_t*)MP_OBJ_TO_PTR(member))->fun);
         dest[1] = MP_OBJ_FROM_PTR(type);
     } else if (mp_obj_is_type(member, &mp_type_type)) {
         // Don't try to bind types (even though they're callable)
         dest[0] = member;
     } else if (mp_obj_is_fun(member)
         || (mp_obj_is_obj(member)
-            && (((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type->name == MP_QSTR_closure
-                || ((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type->name == MP_QSTR_generator))) {
+            && MP_PGM_ACCESS((((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type->name) == MP_QSTR_closure
+                || MP_PGM_ACCESS(((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type->name) == MP_QSTR_generator))) {
         // only functions, closures and generators objects can be bound to self
         #if MICROPY_BUILTIN_METHOD_CHECK_SELF_ARG
         const mp_obj_type_t *m_type = MP_PGM_ACCESS(((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type);
@@ -1073,7 +1073,7 @@ void mp_load_method_maybe(mp_obj_t obj, qstr attr, mp_obj_t *dest) {
         dest[0] = MP_OBJ_FROM_PTR(type);
     } else
 #endif
-    if (attr == MP_QSTR___next__ && type->iternext != NULL) {
+    if (attr == MP_QSTR___next__ && MP_PGM_ACCESS(type->iternext) != NULL) {
         dest[0] = MP_OBJ_FROM_PTR(&mp_builtin_next_obj);
         dest[1] = obj;
 
@@ -1088,7 +1088,7 @@ void mp_load_method_maybe(mp_obj_t obj, qstr attr, mp_obj_t *dest) {
         mp_map_t *locals_map = &MP_PGM_ACCESS(type->locals_dict)->map;
         mp_map_elem_t *elem = mp_map_lookup(locals_map, MP_OBJ_NEW_QSTR(attr), MP_MAP_LOOKUP);
         if (elem != NULL) {
-            mp_convert_member_lookup(obj, type, elem->value, dest);
+            mp_convert_member_lookup(obj, type, MP_PGM_ACCESS(elem->value), dest);
         }
     }
 }
@@ -1107,7 +1107,7 @@ void mp_load_method(mp_obj_t base, qstr attr, mp_obj_t *dest) {
             if (mp_obj_is_type(base, &mp_type_type)) {
                 nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_AttributeError,
                     "type object '%q' has no attribute '%q'",
-                    ((mp_obj_type_t*)MP_OBJ_TO_PTR(base))->name, attr));
+                    MP_PGM_ACCESS(((mp_obj_type_t*)MP_OBJ_TO_PTR(base))->name), attr));
             } else {
                 nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_AttributeError,
                     "'%s' object has no attribute '%q'",
@@ -1136,9 +1136,9 @@ void mp_load_method_protected(mp_obj_t obj, qstr attr, mp_obj_t *dest, bool catc
 void mp_store_attr(mp_obj_t base, qstr attr, mp_obj_t value) {
     DEBUG_OP_printf("store attr %p.%s <- %p\n", base, qstr_str(attr), value);
     const mp_obj_type_t *type = mp_obj_get_type(base);
-    if (type->attr != NULL) {
+    if (MP_PGM_ACCESS(type->attr) != NULL) {
         mp_obj_t dest[2] = {MP_OBJ_SENTINEL, value};
-        type->attr(base, attr, dest);
+        MP_PGM_ACCESS(type->attr)(base, attr, dest);
         if (dest[0] == MP_OBJ_NULL) {
             // success
             return;
@@ -1201,8 +1201,8 @@ mp_obj_t mp_getiter(mp_obj_t o_in, mp_obj_iter_buf_t *iter_buf) {
 // may also raise StopIteration()
 mp_obj_t mp_iternext_allow_raise(mp_obj_t o_in) {
     const mp_obj_type_t *type = mp_obj_get_type(o_in);
-    if (type->iternext != NULL) {
-        return type->iternext(o_in);
+    if (MP_PGM_ACCESS(type->iternext) != NULL) {
+        return MP_PGM_ACCESS(type->iternext)(o_in);
     } else {
         // check for __next__ method
         mp_obj_t dest[2];
@@ -1266,8 +1266,8 @@ mp_vm_return_kind_t mp_resume(mp_obj_t self_in, mp_obj_t send_value, mp_obj_t th
         return mp_obj_gen_resume(self_in, send_value, throw_value, ret_val);
     }
 
-    if (type->iternext != NULL && send_value == mp_const_none) {
-        mp_obj_t ret = type->iternext(self_in);
+    if (MP_PGM_ACCESS(type->iternext) != NULL && send_value == mp_const_none) {
+        mp_obj_t ret = MP_PGM_ACCESS(type->iternext)(self_in);
         *ret_val = ret;
         if (ret != MP_OBJ_STOP_ITERATION) {
             return MP_VM_RETURN_YIELD;

@@ -423,7 +423,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(list_remove_obj, mp_obj_list_remove);
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(list_reverse_obj, list_reverse);
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(list_sort_obj, 1, mp_obj_list_sort);
 
-STATIC const mp_rom_map_elem_t list_locals_dict_table[] = {
+STATIC const mp_rom_map_elem_t list_locals_dict_table[] MP_PROGMEM = {
     { MP_ROM_QSTR(MP_QSTR_append), MP_ROM_PTR(&list_append_obj) },
     { MP_ROM_QSTR(MP_QSTR_clear), MP_ROM_PTR(&list_clear_obj) },
     { MP_ROM_QSTR(MP_QSTR_copy), MP_ROM_PTR(&list_copy_obj) },

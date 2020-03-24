@@ -145,10 +145,10 @@ STATIC void mp_map_rehash(mp_map_t *map) {
 //  - returns NULL if not found, else the slot if was found in with key null and value non-null
 mp_map_elem_t *mp_map_lookup(mp_map_t *map, mp_obj_t index, mp_map_lookup_kind_t lookup_kind) {
     // If the map is a fixed array then we must only be called for a lookup
-    assert(!map->is_fixed || lookup_kind == MP_MAP_LOOKUP);
+    assert(!MP_PGM_ACCESS(map->is_fixed) || lookup_kind == MP_MAP_LOOKUP);
 
     // Work out if we can compare just pointers
-    bool compare_only_ptrs = map->all_keys_are_qstrs;
+    bool compare_only_ptrs = MP_PGM_ACCESS(map->all_keys_are_qstrs);
     if (compare_only_ptrs) {
         if (mp_obj_is_qstr(index)) {
             // Index is a qstr, so can just do ptr comparison.
@@ -167,8 +167,8 @@ mp_map_elem_t *mp_map_lookup(mp_map_t *map, mp_obj_t index, mp_map_lookup_kind_t
     }
 
     // if the map is an ordered array then we must do a brute force linear search
-    if (map->is_ordered) {
-        for (mp_map_elem_t *elem = &map->table[0], *top = &map->table[map->used]; elem < top; elem++) {
+    if (MP_PGM_ACCESS(map->is_ordered)) {
+        for (mp_map_elem_t *elem = &MP_PGM_ACCESS(map->table)[0], *top = &MP_PGM_ACCESS(map->table)[MP_PGM_ACCESS(map->used)]; elem < top; elem++) {
             if (MP_PGM_ACCESS(elem->key) == index || (!compare_only_ptrs && mp_obj_equal(MP_PGM_ACCESS(elem->key), index))) {
                 #if MICROPY_PY_COLLECTIONS_ORDEREDDICT
                 if (MP_UNLIKELY(lookup_kind == MP_MAP_LOOKUP_REMOVE_IF_FOUND)) {

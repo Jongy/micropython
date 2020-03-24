@@ -2701,7 +2701,7 @@ STATIC void compile_yield_expr(compiler_t *comp, mp_parse_node_struct_t *pns) {
         reserve_labels_for_native(comp, 1);
     } else if (MP_PARSE_NODE_IS_STRUCT_KIND(pns->nodes[0], PN_yield_arg_from)) {
         pns = (mp_parse_node_struct_t*)pns->nodes[0];
-        compile_node(comp, pns->nodes[0]);
+        compile_node(comp, MP_PGM_ACCESS(pns->nodes[0]));
         compile_yield_from(comp);
     } else {
         compile_node(comp, pns->nodes[0]);

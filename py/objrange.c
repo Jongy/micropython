@@ -50,7 +50,7 @@ STATIC mp_obj_t range_it_iternext(mp_obj_t o_in) {
     }
 }
 
-STATIC const mp_obj_type_t range_it_type = {
+STATIC const mp_obj_type_t range_it_type MP_PROGMEM = {
     { &mp_type_type },
     .name = MP_QSTR_iterator,
     .getiter = mp_identity_getiter,

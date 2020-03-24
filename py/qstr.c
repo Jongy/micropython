@@ -90,7 +90,7 @@ mp_uint_t qstr_compute_hash(const byte *data, size_t len) {
     // djb2 algorithm; see http://www.cse.yorku.ca/~oz/hash.html
     mp_uint_t hash = 5381;
     for (const byte *top = data + len; data < top; data++) {
-        hash = ((hash << 5) + hash) ^ (*data); // hash * 33 ^ data
+        hash = ((hash << 5) + hash) ^ (MP_PGM_ACCESS(*data)); // hash * 33 ^ data
     }
     hash &= Q_HASH_MASK;
     // Make sure that valid hash is never zero, zero means "hash not computed"
@@ -100,7 +100,7 @@ mp_uint_t qstr_compute_hash(const byte *data, size_t len) {
     return hash;
 }
 
-const qstr_pool_t mp_qstr_const_pool = {
+const qstr_pool_t mp_qstr_const_pool MP_PROGMEM = {
     NULL,               // no previous pool
     0,                  // no previous pool
     MICROPY_ALLOC_QSTR_ENTRIES_INIT,
@@ -134,10 +134,10 @@ STATIC const byte *find_qstr(qstr q) {
     // search pool for this qstr
     // total_prev_len==0 in the final pool, so the loop will always terminate
     qstr_pool_t *pool = MP_STATE_VM(last_pool);
-    while (q < pool->total_prev_len) {
+    while (q < MP_PGM_ACCESS(pool->total_prev_len)) {
         pool = pool->prev;
     }
-    return pool->qstrs[q - pool->total_prev_len];
+    return MP_PGM_ACCESS(pool->qstrs[q - MP_PGM_ACCESS(pool->total_prev_len)]);
 }
 
 // qstr_mutex must be taken while in this function
@@ -145,8 +145,8 @@ STATIC qstr qstr_add(const byte *q_ptr) {
     DEBUG_printf("QSTR: add hash=%d len=%d data=%.*s\n", Q_GET_HASH(q_ptr), Q_GET_LENGTH(q_ptr), Q_GET_LENGTH(q_ptr), Q_GET_DATA(q_ptr));
 
     // make sure we have room in the pool for a new qstr
-    if (MP_STATE_VM(last_pool)->len >= MP_STATE_VM(last_pool)->alloc) {
-        size_t new_alloc = MP_STATE_VM(last_pool)->alloc * 2;
+    if (MP_PGM_ACCESS(MP_STATE_VM(last_pool)->len) >= MP_PGM_ACCESS(MP_STATE_VM(last_pool)->alloc)) {
+        size_t new_alloc = MP_PGM_ACCESS(MP_STATE_VM(last_pool)->alloc) * 2;
         #ifdef MICROPY_QSTR_EXTRA_POOL
         // Put a lower bound on the allocation size in case the extra qstr pool has few entries
         new_alloc = MAX(MICROPY_ALLOC_QSTR_ENTRIES_INIT, new_alloc);
@@ -157,7 +157,7 @@ STATIC qstr qstr_add(const byte *q_ptr) {
             m_malloc_fail(new_alloc);
         }
         pool->prev = MP_STATE_VM(last_pool);
-        pool->total_prev_len = MP_STATE_VM(last_pool)->total_prev_len + MP_STATE_VM(last_pool)->len;
+        pool->total_prev_len = MP_PGM_ACCESS(MP_STATE_VM(last_pool)->total_prev_len) + MP_PGM_ACCESS(MP_STATE_VM(last_pool)->len);
         pool->alloc = new_alloc;
         pool->len = 0;
         MP_STATE_VM(last_pool) = pool;
@@ -176,10 +176,10 @@ qstr qstr_find_strn(const char *str, size_t str_len) {
     mp_uint_t str_hash = qstr_compute_hash((const byte*)str, str_len);
 
     // search pools for the data
-    for (qstr_pool_t *pool = MP_STATE_VM(last_pool); pool != NULL; pool = pool->prev) {
-        for (const byte **q = pool->qstrs, **q_top = pool->qstrs + pool->len; q < q_top; q++) {
-            if (Q_GET_HASH(*q) == str_hash && Q_GET_LENGTH(*q) == str_len && memcmp(Q_GET_DATA(*q), str, str_len) == 0) {
-                return pool->total_prev_len + (q - pool->qstrs);
+    for (qstr_pool_t *pool = MP_STATE_VM(last_pool); pool != NULL; pool = MP_PGM_ACCESS(pool->prev)) {
+        for (const byte **q = pool->qstrs, **q_top = pool->qstrs + MP_PGM_ACCESS(pool->len); q < q_top; q++) {
+            if (Q_GET_HASH(MP_PGM_ACCESS(*q)) == str_hash && Q_GET_LENGTH(MP_PGM_ACCESS(*q)) == str_len && memcmp(Q_GET_DATA(MP_PGM_ACCESS(*q)), str, str_len) == 0) {
+                return MP_PGM_ACCESS(pool->total_prev_len) + (q - pool->qstrs);
             }
         }
     }
